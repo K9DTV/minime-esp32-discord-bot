@@ -14,8 +14,8 @@ MiniMe is firmware for a **WeAct Studio ESP32-S3-N16R8** that runs a Discord bot
 
 I find this working well and have not found any bugs. Unless I find something to add to its function, or a bug, this is now shipped code.
 
-After Wi-Fi connects, MiniMe serves a LAN web dashboard at `http://<board-ip>:8080/` (Display, SysInfo, LOG, Serial). Theme matches k9dtv.com (light/dark, local assets). IC chips: theme (sun/moon) and **Display** / **Log** layout (four panels vs Display + SysInfo only).
-**Chrome note:** if Chrome flips `http://` to `https://` after a second, that is a Chrome “Always use secure connections” / HTTPS-upgrade setting for private sites — not MiniMe. Other browsers keep HTTP. Use `http://<board-ip>:8080/` or turn off upgrades for private sites.
+After Wi-Fi connects, MiniMe serves a LAN web dashboard at `http://<board-ip>/` (Display, SysInfo, LOG, Serial). Theme matches k9dtv.com (light/dark, local assets). IC chips: theme (sun/moon) and **Display** / **Log** layout (four panels vs Display + SysInfo only).
+**Chrome note:** if Chrome flips `http://` to `https://` after a second, that is a Chrome “Always use secure connections” / HTTPS-upgrade setting for private sites — not MiniMe. Other browsers keep HTTP. Use `http://<board-ip>/` or turn off upgrades for private sites.
 
 ![MiniMe LAN web UI — Display meters aligned, SysInfo, LOG, Serial](docs/web-ui-display.png)
 
@@ -100,7 +100,7 @@ Everything below runs on one **ESP32-S3**. Discord stays in the cloud; MiniMe ta
 - **Gateway** — live link for chat commands, presence, Online/Idle, heartbeats (must not stall during long HTTPS).
 - **REST** — bot posts replies and loads member names; also pulls science/weather/AI over HTTPS/HTTP (`setInsecure` for Discord/API outbound).
 - **OLED** — always the status board; sleep blanks the panel only (Wi-Fi and Gateway stay up).
-- **LAN web UI** — same board status in a browser at `http://<board-ip>:8080/` (Display, SysInfo, LOG, Serial); light/dark theme and Display/Log layout chips; refreshes about once a second; does not replace OLED. The **LOG** panel is capped at **20 KB**; if the next line would go over, LOG is cleared (avoids unbounded growth that could look like a hang or memory bug). **Serial** stays a fixed 12-line ring.
+- **LAN web UI** — same board status in a browser at `http://<board-ip>/` (Display, SysInfo, LOG, Serial); light/dark theme and Display/Log layout chips; refreshes about once a second; does not replace OLED. The **LOG** panel is capped at **20 KB**; if the next line would go over, LOG is cleared (avoids unbounded growth that could look like a hang or memory bug). **Serial** stays a fixed 12-line ring.
 - **Touch** — wakes the OLED only; does not change Discord status or fire GPIO commands.
 
 ### Why this is hard (on one MCU)

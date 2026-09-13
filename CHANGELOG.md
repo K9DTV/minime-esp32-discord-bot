@@ -7,7 +7,7 @@ Older sections describe that release as shipped. Current firmware and docs are *
 - LAN web UI: k9dtv.com light/dark theme (local assets, `k9-theme`, OS default when unset); IC chip toggle with sun/moon + target label; sticky click focus cleared.
 - LAN web UI: second IC chip for **Display** (all four panels) vs **Log** (Display + SysInfo only); preference in `mm-layout`.
 - Discord: public `!sys` and `!ota` (ArduinoOTA IP / hostname / port 3232); uptime as `d h m s`; set1/set2 flash at 1 Hz 50%.
-- LAN web UI on port **8080** (`http://<board-ip>:8080/`). Confirm flash via `Display · v0.5.00`.
+- LAN web UI on port **80** (`http://<board-ip>/`). Confirm flash via `Display · v0.5.00`.
 
 ## 0.4.95
 
