@@ -10,11 +10,12 @@ MiniMe is firmware for a **WeAct Studio ESP32-S3-N16R8** that runs a Discord bot
 
 *Breadboard prototype: WeAct Studio ESP32-S3-N16R8, 128x128 SSD1327 (GND / VCC / SCL / SDA), two discrete LEDs, GPIO 4 touch wake pad (yellow wire loop), and DS18B20 on GPIO 10. Sensor fail on the OLED is `T:--Error--`.*
 
-**Status:** shipped breadboard firmware · **v0.4.93** · green CI compile · PCB / desk case still planned (see Ongoing project).
+**Status:** shipped breadboard firmware · **v0.4.95** · green CI compile · PCB / desk case still planned (see Ongoing project).
 
 I find this working well and have not found any bugs. Unless I find something to add to its function, or a bug, this is now shipped code.
 
 After Wi-Fi connects, MiniMe serves a LAN web dashboard at `http://<board-ip>/` (Display, SysInfo, LOG, Serial).
+**Chrome note:** if Chrome flips `http://` to `https://` after a second, that is a Chrome “Always use secure connections” / HTTPS-upgrade setting for private sites — not MiniMe. Other browsers keep HTTP. Use `http://<board-ip>/` or turn off upgrades for private sites.
 
 ![MiniMe LAN web UI — Display meters aligned, SysInfo, LOG, Serial](docs/web-ui-display.png)
 

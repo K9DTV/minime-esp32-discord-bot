@@ -1,6 +1,14 @@
 # Changelog
 
-Older sections describe that release as shipped. Current firmware and docs are **0.4.93** (see `VERSION` and README).
+Older sections describe that release as shipped. Current firmware and docs are **0.4.95** (see `VERSION` and README).
+
+## 0.4.95
+
+- LAN web UI back on port **80** (`http://<board-ip>/`). Dropped the 8080 workaround. Confirm flash via `Display · v0.4.95`.
+
+## 0.4.94
+
+- LAN web UI briefly on port 8080 (Chrome HTTPS auto-upgrade workaround); reverted in 0.4.95.
 
 ## 0.4.93
 
