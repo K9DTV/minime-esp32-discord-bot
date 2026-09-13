@@ -40,6 +40,7 @@ jobs:
 
       - name: Compile sketch
         run: |
+          # Use sketch partitions.csv (dual OTA ~7.9MB apps). Default 1.25MB APP fails when sketch grows.
           arduino-cli compile \
-            --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,CDCOnBoot=cdc" \
+            --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=custom,PSRAM=opi,CDCOnBoot=cdc" \
             MiniMe_Discord_Bot

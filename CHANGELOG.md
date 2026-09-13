@@ -5,6 +5,7 @@ Older sections describe that release as shipped. Current firmware and docs are *
 ## 0.4.93
 
 - LAN web UI back to plain HTTP on port 80 (self-signed HTTPS removed; browser warning was not useful trust). Confirm flash via `Display · v0.4.93`.
+- CI: compile FQBN uses `PartitionScheme=custom` so GitHub builds against sketch `partitions.csv` (not the default 1.25MB APP limit that failed on v0.4.92).
 
 ## 0.4.92
 
