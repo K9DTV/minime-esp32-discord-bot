@@ -103,6 +103,7 @@ flowchart TB
     BR[http board-ip]
     TOUCH[Touch GPIO 4 + USB VBUS compensate]
     IO[GPIO servo NeoPixel DS18B20]
+    WEB --- BR
   end
 
   DG <-->|TLS websocket| GW
@@ -117,7 +118,7 @@ flowchart TB
   OLED -.->|same status fields| WEB
   IO -.->|RSSI heap servo temp| WEB
   GW -.->|log lines| WEB
-  BR -->|HTTP GET / and /api/status| WEB
+  WEB -->|HTTP GET / and /api/status| BR
 ```
 
 - **Gateway** — live link for chat commands, presence, Online/Idle, heartbeats (must not stall during long HTTPS).
