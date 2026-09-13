@@ -145,7 +145,7 @@ static void dashFields(String& timeStr, String& dateStr, String& upStr,
   unsigned long d = 0, h = 0, m = 0;
   uptimeDhms(d, h, m);
   char upBuf[24];
-  snprintf(upBuf, sizeof(upBuf), "%4lud%2luh%2lum", d, h, m);
+  snprintf(upBuf, sizeof(upBuf), "%lud %luh %lum", d, h, m);
   upStr = upBuf;
 
   rssi = WiFi.RSSI();
