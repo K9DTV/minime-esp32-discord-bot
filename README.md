@@ -95,7 +95,7 @@ flowchart TB
     EXT[Public APIs: weather NASA arXiv DeepSeek ISS news]
   end
 
-  subgraph board [WeAct ESP32-S3]
+  subgraph board [" "]
     direction TB
     subgraph mid [ ]
       direction LR
@@ -103,15 +103,19 @@ flowchart TB
       REST[REST: post messages fetch members]
       CMD[Command handler + scheduled posts]
     end
-    OLED[SSD1327 OLED dashboard]
-    TOUCH[Touch GPIO 4 + USB VBUS compensate]
-    IO[GPIO servo NeoPixel DS18B20]
-    subgraph webui [ ]
-      direction TB
-      WEB[LAN web UI :80 Display SysInfo LOG Serial]
-      BR[http board-ip]
-      WEB -->|HTTP GET / and /api/status| BR
+    subgraph hw [ ]
+      direction LR
+      OLED[SSD1327 OLED dashboard]
+      TOUCH[Touch GPIO 4 + USB VBUS compensate]
+      IO[GPIO servo NeoPixel DS18B20]
     end
+    WEB[LAN web UI :80 Display SysInfo LOG Serial]
+    subgraph foot [ ]
+      direction LR
+      WEACT[WeAct ESP32-S3]
+      BR[http board-ip]
+    end
+    WEB -->|HTTP GET / and /api/status| BR
   end
 
   DG <-->|TLS websocket| GW
@@ -126,6 +130,7 @@ flowchart TB
   OLED -.->|same status fields| WEB
   IO -.->|RSSI heap servo temp| WEB
   GW -.->|log lines| WEB
+  OLED ~~~ WEACT
 ```
 
 - **Gateway** — live link for chat commands, presence, Online/Idle, heartbeats (must not stall during long HTTPS).
