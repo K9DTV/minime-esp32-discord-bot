@@ -89,21 +89,29 @@ Everything below runs on one **ESP32-S3**. Discord stays in the cloud; MiniMe ta
 ```mermaid
 flowchart TB
   subgraph cloud [Cloud]
+    direction LR
     DG[Discord Gateway websocket]
     DR[Discord HTTPS REST]
     EXT[Public APIs: weather NASA arXiv DeepSeek ISS news]
   end
 
   subgraph board [WeAct ESP32-S3]
-    GW[Gateway: events heartbeat presence]
-    REST[REST: post messages fetch members]
-    CMD[Command handler + scheduled posts]
+    direction TB
+    subgraph mid [ ]
+      direction LR
+      GW[Gateway: events heartbeat presence]
+      REST[REST: post messages fetch members]
+      CMD[Command handler + scheduled posts]
+    end
     OLED[SSD1327 OLED dashboard]
-    WEB[LAN web UI :80 Display SysInfo LOG Serial]
-    BR[http board-ip]
     TOUCH[Touch GPIO 4 + USB VBUS compensate]
     IO[GPIO servo NeoPixel DS18B20]
-    WEB --- BR
+    subgraph webui [ ]
+      direction TB
+      WEB[LAN web UI :80 Display SysInfo LOG Serial]
+      BR[http board-ip]
+      WEB -->|HTTP GET / and /api/status| BR
+    end
   end
 
   DG <-->|TLS websocket| GW
@@ -118,7 +126,6 @@ flowchart TB
   OLED -.->|same status fields| WEB
   IO -.->|RSSI heap servo temp| WEB
   GW -.->|log lines| WEB
-  WEB -->|HTTP GET / and /api/status| BR
 ```
 
 - **Gateway** — live link for chat commands, presence, Online/Idle, heartbeats (must not stall during long HTTPS).
