@@ -617,34 +617,11 @@ void handleCommand(const String& content, const String& authorId, const String& 
 
 void backgroundTasks() {
   runAskFromLoop();
-  unsigned long now = millis();
-  // Wait for Gateway so boot sysinfo is not "Disconnected"
-  if (gatewayConnected && identified &&
-      (lastSysInfoMillis == 0 || now - lastSysInfoMillis >= SYSINFO_INTERVAL_MS)) {
-    lastSysInfoMillis = now;
-    noteBotActivity();
-    sendDiscordMessage(TARGET_CHANNEL_ID, getSystemInfo(), true);
-  }
-  updateLocalTime();
-  int currentHour = timeClient.getHours();
-  int currentMinute = timeClient.getMinutes();
-  if ((currentHour == 6 || currentHour == 12 || currentHour == 18) && currentMinute == 0) {
-    if (lastSentHour != currentHour) {
-      lastSentHour = currentHour;
-      float c, f;
-      noteBotActivity();
-      if (readTemperature(c, f)) {
-        String report = "⏰ **Scheduled Summary (" + String(currentHour) + ":00):**\n" +
-                        "• **Indoor Temp:** " + String(c, 1) + "°C / " + String(f, 1) + "°F";
-        sendDiscordMessage(TARGET_CHANNEL_ID, report);
-        showTransient("Scheduled", "Report Sent");
-      } else {
-        sendDiscordMessage(TARGET_CHANNEL_ID, "⏰ **Scheduled Summary:** Temperature sensor error.");
-      }
-    }
-  } else {
-    if (lastSentHour != -1 && currentHour != 6 && currentHour != 12 && currentHour != 18) {
-      lastSentHour = -1;
-    }
-  }
+  // Boot only: one !sysinfo + !help in TARGET_CHANNEL_ID after Gateway is up. No repeating auto reports.
+  if (lastSysInfoMillis != 0) return;
+  if (!gatewayConnected || !identified) return;
+  lastSysInfoMillis = millis();
+  noteBotActivity();
+  sendDiscordMessage(TARGET_CHANNEL_ID, getSystemInfo(), true);
+  handleCommand("!help", String(""), String("boot"), TARGET_CHANNEL_ID, false);
 }

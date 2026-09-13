@@ -10,7 +10,9 @@ MiniMe is firmware for a **WeAct Studio ESP32-S3-N16R8** that runs a Discord bot
 
 *Breadboard prototype: WeAct Studio ESP32-S3-N16R8, 128x128 SSD1327 (GND / VCC / SCL / SDA), two discrete LEDs, GPIO 4 touch wake pad (yellow wire loop), and DS18B20 on GPIO 10. Sensor fail on the OLED is `T:--Error--`.*
 
-**Status:** working breadboard firmware · **v0.4.88** · green CI compile · PCB / desk case planned (see Ongoing project).
+**Status:** shipped breadboard firmware · **v0.4.89** · green CI compile · PCB / desk case still planned (see Ongoing project).
+
+I find this working well and have not found any bugs. Unless I find something to add to its function, or a bug, this is now shipped code.
 
 After Wi-Fi connects, MiniMe also serves a LAN web dashboard at `http://<board-ip>/` (Display, SysInfo, LOG, Serial).
 
@@ -25,7 +27,7 @@ AI helped with firmware edits, multi-file layout, and GitHub updates. I owned th
 
 ## Ongoing project
 
-MiniMe is still in progress. Working board firmware is on this repo; more hardware and features are planned:
+Firmware on this repo is **shipped**. Hardware and optional extras still on the list:
 
 - **Wireless firmware updates** — update the ESP32 over the network without a USB cable each time
 - **Mention / DM indicators on `set1` / `set2`** — DM to the bot flashes **set1** at 10 Hz; @mention of `OWNER_ID_STR` flashes **set2** at 10 Hz. Owner `!clear` turns both off.
@@ -61,10 +63,12 @@ Same list Discord shows for `!help`:
 
 ### Automatic posts
 
-Sent to `TARGET_CHANNEL_ID` (no command needed):
+Sent once to `TARGET_CHANNEL_ID` after Gateway connects (boot only):
 
-- Every **4 hours:** system diagnostics (first post waits until Gateway is connected)
-- Daily at **6:00, 12:00, and 18:00** (Pacific): indoor temperature summary
+- `!sysinfo` diagnostics
+- `!help` command list
+
+No repeating 4-hour sysinfo or daily temperature summaries. Commands still work in `TARGET_CHANNEL_ID`, `TARGET_CHANNEL_ID1`, and DMs.
 
 ### Bot Discord presence
 
@@ -72,7 +76,7 @@ MiniMe’s own Discord status (green Online / yellow Idle) in Discord:
 
 - Starts **Online** when the Gateway identifies
 - Goes **Idle** after **5 minutes** with no activity
-- Returns to **Online** on commands and scheduled posts (touch does **not** set Online)
+- Returns to **Online** on commands and the boot channel announce (touch does **not** set Online)
 
 ### `!ask` / DeepSeek
 
@@ -145,9 +149,9 @@ After **1 minute** with no real events, contrast **dims over 15 seconds**, then 
 
 These **do not** reset the timer: signal / heap / servo bars, clock, uptime/temp on row 3, and the 2-second dashboard refresh.
 
-These **wake** the panel and restart the 1-minute timer: **touch on the wake pad (GPIO 4)**, Discord commands, gateway connect/disconnect, `!display`, scheduled reports, and other status lines on rows 15-16. Presence updates for the eight user rows **do not** wake the panel.
+These **wake** the panel and restart the 1-minute timer: **touch on the wake pad (GPIO 4)**, Discord commands, gateway connect/disconnect, `!display`, boot channel announce, and other status lines on rows 15-16. Presence updates for the eight user rows **do not** wake the panel.
 
-When the OLED is off **and** Discord status is Idle, CPU is **100 MHz**; otherwise **240 MHz**.
+When the OLED is off **and** Discord status is Idle, CPU is **80 MHz**; otherwise **240 MHz**.
 
 </details>
 
@@ -184,7 +188,7 @@ Use `#define` (not `const char*`) so every `.cpp` can include `secrets.h` withou
 | `DEEPSEEK_API_KEY` | DeepSeek for `!ask` |
 | `BOT_GUILD_ID` | One guild to load members from at boot (numeric snowflake) |
 | `OWNER_ID_STR` | Who can run LED / set1 / set2 / servo |
-| `TARGET_CHANNEL_ID` | Commands + auto sysinfo / scheduled summaries |
+| `TARGET_CHANNEL_ID` | Commands + one-time boot sysinfo/help |
 | `TARGET_CHANNEL_ID1` | Second channel where commands are allowed |
 
 IDs are **digits only**. Paste them as C strings, for example `"123456789012345678"`.
@@ -331,7 +335,7 @@ TO-92, powered from **3.3 V** (not parasitic). Firmware enables the ESP32 **inte
 | Middle (DQ) | GPIO 10 |
 | Right (VDD) | 3.3 V |
 
-`!temp` and scheduled indoor summaries use this sensor. If it is missing or the bus fails, Discord replies `Temperature sensor error.` and the OLED shows `T:--Error--`.
+`!temp` uses this sensor. If it is missing or the bus fails, Discord replies `Temperature sensor error.` and the OLED shows `T:--Error--`.
 
 ---
 

@@ -242,13 +242,8 @@ void updateBotPresenceIdle() {
   sendBotPresence("idle", true);
 }
 
-// 100 MHz only when OLED off, Discord Idle, and web UI is not serving.
-// Dropping CPU with the LAN web server up breaks Wi-Fi / browser access.
+// 80 MHz when OLED off and Discord Idle (identified). ESP32-S3 has no 100 MHz step.
 void applyCpuForIdleState() {
-  if (otaIsBusy() || webUiKeepsCpuActive()) {
-    if (getCpuFrequencyMhz() != CPU_MHZ_ACTIVE) setCpuFrequencyMhz(CPU_MHZ_ACTIVE);
-    return;
-  }
   bool slow = displayAsleep && botDiscordStatus == 1 && identified;
   uint32_t want = slow ? CPU_MHZ_OLED_OFF_BOT_IDLE : CPU_MHZ_ACTIVE;
   if (getCpuFrequencyMhz() == want) return;

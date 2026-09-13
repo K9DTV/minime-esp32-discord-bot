@@ -1,6 +1,10 @@
 # Changelog
 
-Older sections describe that release as shipped. Current firmware and docs are **0.4.88** (see `VERSION` and README).
+Older sections describe that release as shipped. Current firmware and docs are **0.4.89** (see `VERSION` and README).
+
+## 0.4.89
+
+- Shipped breadboard firmware (no known bugs). Idle CPU **80 MHz** (ESP32-S3 has no 100 MHz step). Channel auto reports off; boot posts sysinfo + help once only. Confirm flash via `Display · v0.4.89`.
 
 ## 0.4.88
 
