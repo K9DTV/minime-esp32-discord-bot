@@ -10,6 +10,7 @@ unsigned long lastHeartbeatMillis = 0;
 int lastSeq               = 0;
 String sessionId;
 bool canResume            = false;
+static String resumeGatewayHost; // host only, from READY resume_gateway_url
 unsigned long lastBotActivityMillis = 0;
 uint8_t botDiscordStatus = 0;
 
@@ -134,6 +135,42 @@ static void ensureWifiForGateway() {
   gwLogAppend("WIFI_RETRY begin()");
   WiFi.disconnect();
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+}
+
+// Discord READY gives resume_gateway_url (e.g. wss://gateway-us-east1-b.discord.gg).
+// Resume must reconnect there; identify uses gateway.discord.gg.
+static void parseResumeGatewayHost(const char* url) {
+  resumeGatewayHost = "";
+  if (!url || !url[0]) return;
+  const char* p = url;
+  if (strncmp(p, "wss://", 6) == 0) p += 6;
+  else if (strncmp(p, "ws://", 5) == 0) p += 5;
+  else if (strncmp(p, "https://", 8) == 0) p += 8;
+  else if (strncmp(p, "http://", 7) == 0) p += 7;
+  while (*p && *p != '/' && *p != ':' && *p != '?') {
+    resumeGatewayHost += *p++;
+  }
+}
+
+static void bindGatewayHost(const char* host) {
+  if (!host || !host[0]) host = "gateway.discord.gg";
+  gatewayWS.beginSSL(host, 443, "/?v=10&encoding=json");
+  gatewayWS.onEvent(gatewayEvent);
+  gatewayWS.setReconnectInterval(gwReconnectIntervalMs);
+  gwLogAppend(String("BIND_HOST ") + host);
+}
+
+void connectGateway() {
+  resumeGatewayHost = "";
+  bindGatewayHost("gateway.discord.gg");
+}
+
+static void bindGatewayForNextConnect(bool preferResume) {
+  if (preferResume && resumeGatewayHost.length() > 0) {
+    bindGatewayHost(resumeGatewayHost.c_str());
+  } else {
+    bindGatewayHost("gateway.discord.gg");
+  }
 }
 
 void gwSendJson(JsonDocument& doc) {
@@ -311,6 +348,8 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
       gwNoteDrop(kind, detail);
       gwLoggedConnectDuringDrop = false;
       gwSetReconnectBackoff(false);
+      // Auto-reconnect must hit resume host after OP7, not always gateway.discord.gg.
+      bindGatewayForNextConnect(canResume && sessionId.length() > 0 && lastSeq > 0);
       ensureWifiForGateway();
       showTransient("Gateway", "Disconnected");
       break;
@@ -345,6 +384,7 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
         gwFilter["t"] = true;
         gwFilter["d"]["heartbeat_interval"] = true;
         gwFilter["d"]["session_id"] = true;
+        gwFilter["d"]["resume_gateway_url"] = true;
         gwFilter["d"]["status"] = true;
         gwFilter["d"]["user"]["id"] = true;
         gwFilter["d"]["user"]["username"] = true;
@@ -390,12 +430,13 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
         return;
       }
 
-      // Reconnect: close and Resume on next Hello
+      // Reconnect: close; next socket uses resume_gateway_url host when possible
       if (op == 7) {
         canResume = sessionId.length() > 0;
         gwNoteDrop("OP7_RECONNECT", "OP7_RECONNECT");
         showTransient("Gateway", "Op7 reconnect");
         gatewayWS.disconnect();
+        bindGatewayForNextConnect(canResume && lastSeq > 0);
         return;
       }
 
@@ -412,11 +453,13 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
           sessionId = "";
           lastSeq = 0;
           canResume = false;
+          resumeGatewayHost = "";
         } else {
           canResume = sessionId.length() > 0;
         }
         showTransient("Gateway", "Op9 session");
         gatewayWS.disconnect();
+        bindGatewayForNextConnect(canResume && lastSeq > 0 && resumeGatewayHost.length() > 0);
         return;
       }
 
@@ -428,6 +471,15 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
         if (strcmp(t, "READY") == 0) {
           identified = true;
           sessionId = (*gwDoc)["d"]["session_id"] | "";
+          {
+            const char* rurl = (*gwDoc)["d"]["resume_gateway_url"] | "";
+            parseResumeGatewayHost(rurl);
+            if (resumeGatewayHost.length()) {
+              gwLogAppend(String("RESUME_URL_HOST ") + resumeGatewayHost);
+            } else {
+              gwLogAppend("RESUME_URL_HOST (none)");
+            }
+          }
           canResume = sessionId.length() > 0;
           gwSetReconnectBackoff(true);
           gwClearDropState();

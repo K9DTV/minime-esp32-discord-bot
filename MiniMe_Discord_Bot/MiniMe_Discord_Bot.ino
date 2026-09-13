@@ -53,12 +53,6 @@ void connectWiFi() {
   showTransient("WiFi", "Connected");
 }
 
-void connectGateway() {
-  gatewayWS.beginSSL("gateway.discord.gg", 443, "/?v=10&encoding=json");
-  gatewayWS.onEvent(gatewayEvent);
-  gatewayWS.setReconnectInterval(5000);
-}
-
 void setup() {
   mmSerialBegin();
   gwDoc = new DynamicJsonDocument(GW_DOC_PSRAM);

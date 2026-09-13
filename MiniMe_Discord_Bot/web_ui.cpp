@@ -2,14 +2,15 @@
 #include <WebServer.h>
 #include "k9dtv_logo_svg.h"
 
-// Display | SysInfo; under both LOG | Serial. Serial height/lines never exceed LOG; no Serial scrollbar.
+// Display | SysInfo; under both LOG | Serial.
+// Serial: fixed ring (drop top when full, new line at bottom); no scrollbar.
 // MmLog still feeds web only (USB Serial quiet). FULL/END headers stripped from LOG.
 
 static WebServer webServer(WEB_UI_PORT);
 static bool webUiReady = false;
 
 static const uint8_t WEB_FULL_N = 48;
-static const uint8_t WEB_SERIAL_N = 48;
+static const uint8_t WEB_SERIAL_N = 12;  // fits Serial panel; oldest dropped
 static const uint8_t WEB_LOG_COLS = 96;
 
 static char webFullLines[WEB_FULL_N][WEB_LOG_COLS + 1];
@@ -219,8 +220,9 @@ main{max-width:56rem;margin:0 auto;padding:1rem}
 .muted{color:var(--muted)}.ok{color:var(--ok)}.bad{color:var(--bad)}
 .err{color:var(--bad);padding:.4rem .7rem;font-size:.85rem;grid-column:1/-1}
 .serial{padding:.3rem .55rem .45rem;font-size:.78rem;flex:1;min-height:0;overflow:auto}
-.serial.noscroll{overflow:hidden}
+.serial.noscroll{overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
 .serial div{padding:.12rem 0;border-bottom:1px solid #1c2430;white-space:pre-wrap;word-break:break-word;color:#c5d0de;min-height:1.15em}
+.serial.noscroll div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;word-break:normal;flex:0 0 auto}
 .serial div:last-child{border-bottom:none}.serial .empty{color:var(--muted)}
 @media (max-width:720px){
 .layout{grid-template-columns:1fr;grid-template-areas:"display" "syslog" "logfile" "serial"}
@@ -231,7 +233,7 @@ static void appendBrand(String& html) {
   html += F("<div class=\"top\"><header class=\"brand\">");
   html += F("<a class=\"logo-link\" href=\"https://k9dtv.com\" target=\"_blank\" rel=\"noopener\">");
   html += F("<img class=\"logo\" src=\"/logo.svg\" width=\"343\" height=\"107\" alt=\"K9DTV\"></a>");
-  html += F("<p class=\"sub\">MiniMe A Discord Server APP · v0.4.85</p></header></div>");
+  html += F("<p class=\"sub\">MiniMe A Discord Server APP · v0.4.87</p></header></div>");
 }
 
 static void sendNoCacheHeaders() {
@@ -254,7 +256,7 @@ static void handleRoot() {
   appendBrand(html);
 
   html += F("<div class=\"layout\">");
-  html += F("<section class=\"box\" id=\"box-display\"><h2>Display · v0.4.85</h2>");
+  html += F("<section class=\"box\" id=\"box-display\"><h2>Display · v0.4.87</h2>");
   html += F("<div id=\"dash\" class=\"dash muted\">Loading...</div></section>");
   html += F("<section class=\"box\" id=\"box-sysinfo\"><h2>SysInfo</h2>");
   html += F("<div id=\"sysinfo\" class=\"grid muted\">Loading...</div></section>");
@@ -299,8 +301,6 @@ static void handleRoot() {
   html += F("row('OLED',esc(j.oled))+(tr?row('Transient',tr):'');");
   html += F("var fl=(j.fulllog||[]).filter(function(l){return !!l;});");
   html += F("var ser=(j.serial||[]).filter(function(l){return !!l;});");
-  html += F("var maxN=Math.max(fl.length,1);");
-  html += F("if(ser.length>maxN)ser=ser.slice(ser.length-maxN);");
   html += F("document.getElementById('logfile').innerHTML=linesHtml(fl);");
   html += F("document.getElementById('serial').innerHTML=linesHtml(ser);");
   html += F("document.getElementById('err').hidden=true;}");

@@ -1,6 +1,14 @@
 # Changelog
 
-Older sections describe that release as shipped. Current firmware and docs are **0.4.85** (see `VERSION` and README).
+Older sections describe that release as shipped. Current firmware and docs are **0.4.87** (see `VERSION` and README).
+
+## 0.4.87
+
+- Web Serial panel: fixed 12-line ring (oldest drops off the top, new line at bottom); no scrollbar. Confirm flash via `Display · v0.4.87`.
+
+## 0.4.86
+
+- Gateway: save `resume_gateway_url` from READY and reconnect to that host after OP7 / resume paths (not always `gateway.discord.gg`), to cut OP9 invalid-session after Discord reconnect.
 
 ## 0.4.85
 
