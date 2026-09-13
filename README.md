@@ -100,12 +100,9 @@ flowchart TB
     CMD[Command handler + scheduled posts]
     OLED[SSD1327 OLED dashboard]
     WEB[LAN web UI :80 Display SysInfo LOG Serial]
+    BR[http board-ip]
     TOUCH[Touch GPIO 4 + USB VBUS compensate]
     IO[GPIO servo NeoPixel DS18B20]
-  end
-
-  subgraph lan [LAN browser]
-    BR[http board-ip]
   end
 
   DG <-->|TLS websocket| GW
