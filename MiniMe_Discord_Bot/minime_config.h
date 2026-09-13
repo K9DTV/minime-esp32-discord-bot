@@ -51,8 +51,7 @@ const uint8_t DISPLAY_CONTRAST_FULL = 255;
 const uint8_t MAX_TRACKED_USERS = 8;
 const unsigned long USES_WINDOW_MS = 86400000UL;  // 24h
 
-// ====== LAN WEB UI (HTTPS dashboard; HTTP :80 redirects to HTTPS) ======
-const uint16_t WEB_UI_PORT = 443;
-const uint16_t WEB_UI_HTTP_REDIRECT_PORT = 80;
+// ====== LAN WEB UI (dashboard + log; plain HTTP) ======
+const uint16_t WEB_UI_PORT = 80;
 
 #endif

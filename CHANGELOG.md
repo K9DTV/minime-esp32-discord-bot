@@ -1,6 +1,10 @@
 # Changelog
 
-Older sections describe that release as shipped. Current firmware and docs are **0.4.92** (see `VERSION` and README).
+Older sections describe that release as shipped. Current firmware and docs are **0.4.93** (see `VERSION` and README).
+
+## 0.4.93
+
+- LAN web UI back to plain HTTP on port 80 (self-signed HTTPS removed; browser warning was not useful trust). Confirm flash via `Display · v0.4.93`.
 
 ## 0.4.92
 
