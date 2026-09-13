@@ -10,7 +10,7 @@ MiniMe is firmware for a **WeAct Studio ESP32-S3-N16R8** that runs a Discord bot
 
 *Breadboard prototype: WeAct Studio ESP32-S3-N16R8, 128x128 SSD1327 (GND / VCC / SCL / SDA), two discrete LEDs, GPIO 4 touch wake pad (yellow wire loop), and DS18B20 on GPIO 10. Sensor fail on the OLED is `T:--Error--`.*
 
-**Status:** shipped breadboard firmware · **v0.4.89** · green CI compile · PCB / desk case still planned (see Ongoing project).
+**Status:** shipped breadboard firmware · **v0.4.90** · green CI compile · PCB / desk case still planned (see Ongoing project).
 
 I find this working well and have not found any bugs. Unless I find something to add to its function, or a bug, this is now shipped code.
 
@@ -97,7 +97,7 @@ Everything below runs on one **ESP32-S3**. Discord stays in the cloud; MiniMe ta
 - **Gateway** — live link for chat commands, presence, Online/Idle, heartbeats (must not stall during long HTTPS).
 - **REST** — bot posts replies and loads member names; also pulls science/weather/AI over HTTPS/HTTP.
 - **OLED** — always the status board; sleep blanks the panel only (Wi-Fi and Gateway stay up).
-- **LAN web UI** — same board status in a browser at `http://<board-ip>/` (Display, SysInfo, LOG, Serial); refreshes about once a second; does not replace OLED.
+- **LAN web UI** — same board status in a browser at `http://<board-ip>/` (Display, SysInfo, LOG, Serial); refreshes about once a second; does not replace OLED. The **LOG** panel is capped at **20 KB**; if the next line would go over, LOG is cleared (avoids unbounded growth that could look like a hang or memory bug). **Serial** stays a fixed 12-line ring.
 - **Touch** — wakes the OLED only; does not change Discord status or fire GPIO commands.
 
 ### Why this is hard (on one MCU)

@@ -9,13 +9,15 @@
 static WebServer webServer(WEB_UI_PORT);
 static bool webUiReady = false;
 
-static const uint8_t WEB_FULL_N = 48;
+static const uint8_t WEB_FULL_N = 200;           // room to approach 20KB before wipe
 static const uint8_t WEB_SERIAL_N = 12;  // fits Serial panel; oldest dropped
 static const uint8_t WEB_LOG_COLS = 96;
+static const size_t WEB_FULL_MAX_BYTES = 20480UL; // clear LOG if over this
 
 static char webFullLines[WEB_FULL_N][WEB_LOG_COLS + 1];
 static uint8_t webFullHead = 0;
 static uint8_t webFullCount = 0;
+static size_t webFullBytes = 0;
 static bool webInFullLog = false;
 
 static char webSerialLines[WEB_SERIAL_N][WEB_LOG_COLS + 1];
@@ -36,7 +38,20 @@ static void ringPush(char lines[][WEB_LOG_COLS + 1], uint8_t n,
 static void webFullClear() {
   webFullHead = 0;
   webFullCount = 0;
+  webFullBytes = 0;
   for (uint8_t i = 0; i < WEB_FULL_N; i++) webFullLines[i][0] = '\0';
+}
+
+static void webFullPush(const char* text) {
+  if (!text) return;
+  size_t add = 0;
+  while (add < WEB_LOG_COLS && text[add]) add++;
+  // Over 20KB (or line cap): wipe LOG, then keep the new line.
+  if (webFullCount >= WEB_FULL_N || webFullBytes + add > WEB_FULL_MAX_BYTES) {
+    webFullClear();
+  }
+  ringPush(webFullLines, WEB_FULL_N, webFullHead, webFullCount, text);
+  webFullBytes += add;
 }
 
 static bool lineIsFullStart(const char* s) {
@@ -61,7 +76,7 @@ static void webLogCommitLine() {
     return;
   }
   if (webInFullLog) {
-    ringPush(webFullLines, WEB_FULL_N, webFullHead, webFullCount, webLogAcc);
+    webFullPush(webLogAcc);
   } else {
     ringPush(webSerialLines, WEB_SERIAL_N, webSerialHead, webSerialCount, webLogAcc);
   }
@@ -234,7 +249,7 @@ static void appendBrand(String& html) {
   html += F("<div class=\"top\"><header class=\"brand\">");
   html += F("<a class=\"logo-link\" href=\"https://k9dtv.com\" target=\"_blank\" rel=\"noopener\">");
   html += F("<img class=\"logo\" src=\"/logo.svg\" width=\"343\" height=\"107\" alt=\"K9DTV\"></a>");
-  html += F("<p class=\"sub\">MiniMe A Discord Server APP · v0.4.89</p></header></div>");
+  html += F("<p class=\"sub\">MiniMe A Discord Server APP · v0.4.90</p></header></div>");
 }
 
 static void sendNoCacheHeaders() {
@@ -257,7 +272,7 @@ static void handleRoot() {
   appendBrand(html);
 
   html += F("<div class=\"layout\">");
-  html += F("<section class=\"box\" id=\"box-display\"><h2>Display · v0.4.89</h2>");
+  html += F("<section class=\"box\" id=\"box-display\"><h2>Display · v0.4.90</h2>");
   html += F("<div id=\"dash\" class=\"dash muted\">Loading...</div></section>");
   html += F("<section class=\"box\" id=\"box-sysinfo\"><h2>SysInfo</h2>");
   html += F("<div id=\"sysinfo\" class=\"grid muted\">Loading...</div></section>");

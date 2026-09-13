@@ -1,6 +1,10 @@
 # Changelog
 
-Older sections describe that release as shipped. Current firmware and docs are **0.4.89** (see `VERSION` and README).
+Older sections describe that release as shipped. Current firmware and docs are **0.4.90** (see `VERSION` and README).
+
+## 0.4.90
+
+- Fix: LAN **LOG** panel clears when content would exceed **20 KB** (was able to grow without a hard size wipe). SysInfo uptime spacing `Nd Nh Nm`. Confirm flash via `Display · v0.4.90`.
 
 ## 0.4.89
 
