@@ -26,14 +26,12 @@ static unsigned long gwLastFullLogMillis = 0;
 static unsigned long gwReconnectIntervalMs = 5000;
 static const unsigned long GW_RECONNECT_BASE_MS = 5000UL;
 static const unsigned long GW_RECONNECT_MAX_MS = 5000UL; // was 60000; keep tries short so drop recovery stays under ~30s when Discord answers
-static const unsigned long GW_RECONNECT_AFTER_OP9_MS = 200UL; // resume is dead; do not wait another full 5s
-static const uint8_t GW_RESUME_BIND_FAIL_MAX = 3; // BIND resume host this many times with no WS -> abandon
-static const unsigned long GW_RESUME_STUCK_MS = 20000UL; // or after 20s still down on resume host
+static const unsigned long GW_RECONNECT_FAST_MS = 200UL; // after drop: IDENTIFY ASAP (no resume path)
 static unsigned long gwLastWifiKickMillis = 0;
 static String gwLastDropKind;
 static bool gwLoggedConnectDuringDrop = false;
 static unsigned long gwDropStartedMillis = 0;
-static uint8_t gwResumeBindFails = 0;
+static bool gwFastIdentifyPending = false; // DISCONNECTED must not climb back to 5s after OP7/OP9
 
 static String gwStamp() {
   return String(millis());
@@ -62,7 +60,6 @@ static void gwNoteDrop(const String& kind, const String& detail) {
   if (!gwInDropState) {
     gwInDropState = true;
     gwDropStartedMillis = millis();
-    gwResumeBindFails = 0;
     gwDropStartEvent = detail;
     gwLastDropKind = kind;
     gwLastDropRemindMillis = millis();
@@ -81,16 +78,15 @@ static void gwClearDropState() {
   gwLastDropKind = "";
   gwLoggedConnectDuringDrop = false;
   gwDropStartedMillis = 0;
-  gwResumeBindFails = 0;
+  gwFastIdentifyPending = false;
 }
 
-// Resume host / session no longer usable: force IDENTIFY on gateway.discord.gg.
+// Resume never worked on this board: clear session and IDENTIFY on gateway.discord.gg.
 static void gwAbandonResume(const char* reason) {
   sessionId = "";
   lastSeq = 0;
   canResume = false;
   resumeGatewayHost = "";
-  gwResumeBindFails = 0;
   gwLogAppend(String("ABANDON_RESUME ") + (reason ? reason : ""));
 }
 
@@ -98,6 +94,13 @@ static void gwSetReconnectIntervalMs(unsigned long ms) {
   gwReconnectIntervalMs = ms;
   gatewayWS.setReconnectInterval(gwReconnectIntervalMs);
   gwLogAppend(String("RECONNECT_INTERVAL_MS=") + String(gwReconnectIntervalMs));
+}
+
+// Drop path: skip resume; short reconnect so DISCONNECTED cannot climb to 5s.
+static void gwArmFastIdentify(const char* reason) {
+  gwAbandonResume(reason);
+  gwFastIdentifyPending = true;
+  gwSetReconnectIntervalMs(GW_RECONNECT_FAST_MS);
 }
 
 void gwSerialService() {
@@ -330,16 +333,6 @@ void pumpGateway() {
     ensureWifiForGateway();
   }
 
-  // Stuck on resume host with no WS: abandon and IDENTIFY on main gateway.
-  if (gwInDropState && !gatewayConnected && WiFi.status() == WL_CONNECTED &&
-      (canResume || resumeGatewayHost.length() > 0) &&
-      gwDropStartedMillis != 0 &&
-      (millis() - gwDropStartedMillis >= GW_RESUME_STUCK_MS)) {
-    gwAbandonResume("stuck_no_ws");
-    gwSetReconnectIntervalMs(GW_RECONNECT_AFTER_OP9_MS);
-    bindGatewayForNextConnect(false);
-  }
-
   // Heartbeat after Hello (Discord), not only after READY.
   if (heartbeatIntervalMs > 0 && gatewayConnected && gotHello) {
     unsigned long now = millis();
@@ -382,30 +375,23 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
       gwNoteDrop(kind, detail);
       gwLoggedConnectDuringDrop = false;
 
-      bool wantResume = canResume && sessionId.length() > 0 && lastSeq > 0 &&
-                        resumeGatewayHost.length() > 0;
-      if (wantResume) {
-        gwResumeBindFails++;
-        if (gwResumeBindFails >= GW_RESUME_BIND_FAIL_MAX) {
-          gwAbandonResume("bind_fail");
-          wantResume = false;
-          gwSetReconnectIntervalMs(GW_RECONNECT_AFTER_OP9_MS);
-        } else {
-          gwSetReconnectBackoff(false);
-        }
+      // Never resume (never worked here). Keep fast IDENTIFY interval if already armed.
+      if (gwFastIdentifyPending) {
+        gwSetReconnectIntervalMs(GW_RECONNECT_FAST_MS);
+      } else if (wifiUp) {
+        gwArmFastIdentify("disconnect");
       } else {
+        gwAbandonResume("wifi_down");
         gwSetReconnectBackoff(false);
       }
-
-      // Prefer resume host after OP7; fall back to gateway.discord.gg after fails/timeout.
-      bindGatewayForNextConnect(wantResume);
+      bindGatewayForNextConnect(false);
       ensureWifiForGateway();
       showTransient("Gateway", "Disconnected");
       break;
     }
     case WStype_CONNECTED:
       gatewayConnected = true;
-      gwResumeBindFails = 0;
+      gwFastIdentifyPending = false;
       if (!gwInDropState || !gwLoggedConnectDuringDrop) {
         gwLogAppend("WS_CONNECTED");
         if (gwInDropState) gwLoggedConnectDuringDrop = true;
@@ -466,31 +452,27 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
         lastSeq = (*gwDoc)["s"].as<int>();
       }
 
-      // Hello: start HB, then Resume or Identify
+      // Hello: start HB, then Identify only (resume never succeeds on this board)
       if (op == 10) {
         heartbeatIntervalMs = (*gwDoc)["d"]["heartbeat_interval"] | 0;
         lastHeartbeatMillis = millis();
         gotHello = true;
         gwLogAppend(String("OP10_HELLO hb_ms=") + String(heartbeatIntervalMs));
-        if (canResume && sessionId.length() > 0 && lastSeq > 0) {
-          sendResume();
-        } else {
-          sendIdentify();
-        }
+        sendIdentify();
         return;
       }
 
-      // Reconnect: close; next socket uses resume_gateway_url host when possible
+      // Reconnect: drop session and IDENTIFY on main gateway (skip resume)
       if (op == 7) {
-        canResume = sessionId.length() > 0;
         gwNoteDrop("OP7_RECONNECT", "OP7_RECONNECT");
         showTransient("Gateway", "Op7 reconnect");
+        gwArmFastIdentify("op7");
         gatewayWS.disconnect();
-        bindGatewayForNextConnect(canResume && lastSeq > 0);
+        bindGatewayForNextConnect(false);
         return;
       }
 
-      // Invalid Session: d is boolean (parse without filter)
+      // Invalid Session: always fresh IDENTIFY (resume path unused)
       if (op == 9) {
         bool resumable = false;
         StaticJsonDocument<96> small;
@@ -499,17 +481,10 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
         }
         String detail = String("OP9_INVALID_SESSION resumable=") + (resumable ? "1" : "0");
         gwNoteDrop(detail, detail);
-        if (!resumable) {
-          gwAbandonResume("op9");
-          // Resume known dead: short interval then IDENTIFY on main gateway.
-          gwSetReconnectIntervalMs(GW_RECONNECT_AFTER_OP9_MS);
-        } else {
-          canResume = sessionId.length() > 0;
-          gwSetReconnectBackoff(true);
-        }
         showTransient("Gateway", "Op9 session");
+        gwArmFastIdentify("op9");
         gatewayWS.disconnect();
-        bindGatewayForNextConnect(canResume && lastSeq > 0 && resumeGatewayHost.length() > 0);
+        bindGatewayForNextConnect(false);
         return;
       }
 
@@ -530,10 +505,10 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
               gwLogAppend("RESUME_URL_HOST (none)");
             }
           }
-          canResume = sessionId.length() > 0;
+          canResume = false; // resume disabled; always IDENTIFY after drops
           gwSetReconnectBackoff(true);
           gwClearDropState();
-          gwLogAppend(String("READY session=") + (canResume ? "yes" : "no"));
+          gwLogAppend(String("READY session=") + (sessionId.length() ? "yes" : "no"));
           JsonArray guilds = (*gwDoc)["d"]["guilds"].as<JsonArray>();
           if (!guilds.isNull()) {
             for (JsonObject g : guilds) {
@@ -545,7 +520,7 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
         }
         if (strcmp(t, "RESUMED") == 0) {
           identified = true;
-          canResume = sessionId.length() > 0;
+          canResume = false;
           gwSetReconnectBackoff(true);
           gwClearDropState();
           gwLogAppend("RESUMED");

@@ -617,11 +617,8 @@ void handleCommand(const String& content, const String& authorId, const String& 
 
 void backgroundTasks() {
   runAskFromLoop();
-  // Boot only: one !sys + !help in TARGET_CHANNEL_ID after Gateway is up. No repeating auto reports.
+  // No boot !sys / !help channel posts. Mark once Gateway is up so we never auto-post.
   if (lastSysInfoMillis != 0) return;
   if (!gatewayConnected || !identified) return;
   lastSysInfoMillis = millis();
-  noteBotActivity();
-  sendDiscordMessage(TARGET_CHANNEL_ID, getSystemInfo(), true);
-  handleCommand("!help", String(""), String("boot"), TARGET_CHANNEL_ID, false);
 }

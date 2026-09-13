@@ -8,6 +8,7 @@ Older sections describe that release as shipped. Current firmware and docs are *
 - LAN web UI: second IC chip for **Display** (all four panels) vs **Log** (Display + SysInfo only); preference in `mm-layout`.
 - Discord: public `!sys` and `!ota` (ArduinoOTA IP / hostname / port 3232); uptime as `d h m s`; set1/set2 flash at 1 Hz 50%.
 - LAN web UI on port **80** (`http://<board-ip>/`). Confirm flash via `Display · v0.5.00`.
+- Gateway: skip resume (never worked here); after OP7/OP9/disconnect use 200 ms IDENTIFY reconnect (no 5 s climb). No boot channel `!sys` / `!help` posts.
 
 ## 0.4.95
 
