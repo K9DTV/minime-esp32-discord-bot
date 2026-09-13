@@ -14,8 +14,10 @@
   discord_gateway.cpp              -- websocket, heartbeat, identify, events
   serial_log.cpp                   -- Serial/USB CDC dual log (ESP32-S3)
   ota.cpp                          -- Wi-Fi ArduinoOTA firmware update
-  web_ui.cpp                       -- LAN page: logo + display + log + serial
-  k9dtv_logo_svg.h                 -- static K9DTV logo for /logo.svg
+  web_ui.cpp                       -- LAN page: logo + display + log + serial + light/dark
+  k9dtv_logo_svg.h                 -- dark K9DTV logo for /logo.svg
+  k9dtv_logo_bright_svg.h          -- light K9DTV logo for /logo-bright.svg
+  menu_chip_svg.h                  -- dark/light IC chips for theme toggle
   commands.cpp                     -- handleCommand, APIs, DeepSeek, scheduled
   MiniMe_Discord_Bot.ino           -- setup / loop + Wi-Fi / gateway connect
 
@@ -33,7 +35,7 @@
  Wi-Fi OTA: first flash still via USB. Then Tools -> Port -> minime network port.
  Partition: Flash Size 16MB; sketch partitions.csv = 2x ~7.9MB OTA apps, no SPIFFS/FS.
  Set OTA_PASSWORD in secrets.h.
- Owner Discord: !ota
+ Owner Discord: !ota / !sys (public); !led !set1/2 !servo !clear (owner)
 
  LAN web UI: Display|SysInfo; LOG|Serial under both (Serial no scrollbar, <= LOG lines). USB Serial quiet.
 

@@ -26,9 +26,14 @@ static unsigned long gwLastFullLogMillis = 0;
 static unsigned long gwReconnectIntervalMs = 5000;
 static const unsigned long GW_RECONNECT_BASE_MS = 5000UL;
 static const unsigned long GW_RECONNECT_MAX_MS = 5000UL; // was 60000; keep tries short so drop recovery stays under ~30s when Discord answers
+static const unsigned long GW_RECONNECT_AFTER_OP9_MS = 200UL; // resume is dead; do not wait another full 5s
+static const uint8_t GW_RESUME_BIND_FAIL_MAX = 3; // BIND resume host this many times with no WS -> abandon
+static const unsigned long GW_RESUME_STUCK_MS = 20000UL; // or after 20s still down on resume host
 static unsigned long gwLastWifiKickMillis = 0;
 static String gwLastDropKind;
 static bool gwLoggedConnectDuringDrop = false;
+static unsigned long gwDropStartedMillis = 0;
+static uint8_t gwResumeBindFails = 0;
 
 static String gwStamp() {
   return String(millis());
@@ -56,6 +61,8 @@ void gwLogEvent(const String& ev) {
 static void gwNoteDrop(const String& kind, const String& detail) {
   if (!gwInDropState) {
     gwInDropState = true;
+    gwDropStartedMillis = millis();
+    gwResumeBindFails = 0;
     gwDropStartEvent = detail;
     gwLastDropKind = kind;
     gwLastDropRemindMillis = millis();
@@ -73,6 +80,24 @@ static void gwClearDropState() {
   gwDropStartEvent = "";
   gwLastDropKind = "";
   gwLoggedConnectDuringDrop = false;
+  gwDropStartedMillis = 0;
+  gwResumeBindFails = 0;
+}
+
+// Resume host / session no longer usable: force IDENTIFY on gateway.discord.gg.
+static void gwAbandonResume(const char* reason) {
+  sessionId = "";
+  lastSeq = 0;
+  canResume = false;
+  resumeGatewayHost = "";
+  gwResumeBindFails = 0;
+  gwLogAppend(String("ABANDON_RESUME ") + (reason ? reason : ""));
+}
+
+static void gwSetReconnectIntervalMs(unsigned long ms) {
+  gwReconnectIntervalMs = ms;
+  gatewayWS.setReconnectInterval(gwReconnectIntervalMs);
+  gwLogAppend(String("RECONNECT_INTERVAL_MS=") + String(gwReconnectIntervalMs));
 }
 
 void gwSerialService() {
@@ -122,15 +147,13 @@ void gwSerialService() {
 
 static void gwSetReconnectBackoff(bool reset) {
   if (reset) {
-    gwReconnectIntervalMs = GW_RECONNECT_BASE_MS;
+    gwSetReconnectIntervalMs(GW_RECONNECT_BASE_MS);
   } else {
     unsigned long next = gwReconnectIntervalMs * 2UL;
     if (next < GW_RECONNECT_BASE_MS) next = GW_RECONNECT_BASE_MS;
     if (next > GW_RECONNECT_MAX_MS) next = GW_RECONNECT_MAX_MS;
-    gwReconnectIntervalMs = next;
+    gwSetReconnectIntervalMs(next);
   }
-  gatewayWS.setReconnectInterval(gwReconnectIntervalMs);
-  gwLogAppend(String("RECONNECT_INTERVAL_MS=") + String(gwReconnectIntervalMs));
 }
 
 static void ensureWifiForGateway() {
@@ -307,6 +330,16 @@ void pumpGateway() {
     ensureWifiForGateway();
   }
 
+  // Stuck on resume host with no WS: abandon and IDENTIFY on main gateway.
+  if (gwInDropState && !gatewayConnected && WiFi.status() == WL_CONNECTED &&
+      (canResume || resumeGatewayHost.length() > 0) &&
+      gwDropStartedMillis != 0 &&
+      (millis() - gwDropStartedMillis >= GW_RESUME_STUCK_MS)) {
+    gwAbandonResume("stuck_no_ws");
+    gwSetReconnectIntervalMs(GW_RECONNECT_AFTER_OP9_MS);
+    bindGatewayForNextConnect(false);
+  }
+
   // Heartbeat after Hello (Discord), not only after READY.
   if (heartbeatIntervalMs > 0 && gatewayConnected && gotHello) {
     unsigned long now = millis();
@@ -348,15 +381,31 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
 
       gwNoteDrop(kind, detail);
       gwLoggedConnectDuringDrop = false;
-      gwSetReconnectBackoff(false);
-      // Auto-reconnect must hit resume host after OP7, not always gateway.discord.gg.
-      bindGatewayForNextConnect(canResume && sessionId.length() > 0 && lastSeq > 0);
+
+      bool wantResume = canResume && sessionId.length() > 0 && lastSeq > 0 &&
+                        resumeGatewayHost.length() > 0;
+      if (wantResume) {
+        gwResumeBindFails++;
+        if (gwResumeBindFails >= GW_RESUME_BIND_FAIL_MAX) {
+          gwAbandonResume("bind_fail");
+          wantResume = false;
+          gwSetReconnectIntervalMs(GW_RECONNECT_AFTER_OP9_MS);
+        } else {
+          gwSetReconnectBackoff(false);
+        }
+      } else {
+        gwSetReconnectBackoff(false);
+      }
+
+      // Prefer resume host after OP7; fall back to gateway.discord.gg after fails/timeout.
+      bindGatewayForNextConnect(wantResume);
       ensureWifiForGateway();
       showTransient("Gateway", "Disconnected");
       break;
     }
     case WStype_CONNECTED:
       gatewayConnected = true;
+      gwResumeBindFails = 0;
       if (!gwInDropState || !gwLoggedConnectDuringDrop) {
         gwLogAppend("WS_CONNECTED");
         if (gwInDropState) gwLoggedConnectDuringDrop = true;
@@ -451,15 +500,14 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
         String detail = String("OP9_INVALID_SESSION resumable=") + (resumable ? "1" : "0");
         gwNoteDrop(detail, detail);
         if (!resumable) {
-          sessionId = "";
-          lastSeq = 0;
-          canResume = false;
-          resumeGatewayHost = "";
+          gwAbandonResume("op9");
+          // Resume known dead: short interval then IDENTIFY on main gateway.
+          gwSetReconnectIntervalMs(GW_RECONNECT_AFTER_OP9_MS);
         } else {
           canResume = sessionId.length() > 0;
+          gwSetReconnectBackoff(true);
         }
         showTransient("Gateway", "Op9 session");
-        gwSetReconnectBackoff(true);
         gatewayWS.disconnect();
         bindGatewayForNextConnect(canResume && lastSeq > 0 && resumeGatewayHost.length() > 0);
         return;
@@ -527,7 +575,7 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
           String authorName = discordDisplayName(d["author"]);
           bool isDM = d["guild_id"].isNull();
 
-          // Owner alert outputs: DM to bot -> set1 @ 10 Hz; @owner mention -> set2 @ 10 Hz
+          // Owner alert outputs: DM to bot -> set1 @ 1 Hz; @owner mention -> set2 @ 1 Hz
           if (isDM) {
             startSet1Flash();
           } else {

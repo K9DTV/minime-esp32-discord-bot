@@ -52,6 +52,6 @@ const uint8_t MAX_TRACKED_USERS = 8;
 const unsigned long USES_WINDOW_MS = 86400000UL;  // 24h
 
 // ====== LAN WEB UI (dashboard + log; plain HTTP) ======
-const uint16_t WEB_UI_PORT = 80;
+const uint16_t WEB_UI_PORT = 8080;
 
 #endif

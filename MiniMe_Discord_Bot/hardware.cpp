@@ -86,14 +86,14 @@ bool isOwner(const String& authorId) {
   return authorId == OWNER_ID_STR;
 }
 
-// 10 Hz flash: 50 ms on / 50 ms off per pin (independent).
+// 1 Hz flash, 50% duty: 500 ms on / 500 ms off per pin (independent).
 static bool set1FlashActive = false;
 static bool set2FlashActive = false;
 static bool set1FlashOn = false;
 static bool set2FlashOn = false;
 static unsigned long set1FlashLastMs = 0;
 static unsigned long set2FlashLastMs = 0;
-static const unsigned long SET_FLASH_HALF_MS = 50; // 10 Hz
+static const unsigned long SET_FLASH_HALF_MS = 500; // 1 Hz, 50% cycle
 
 void startSet1Flash() {
   set1FlashActive = true;

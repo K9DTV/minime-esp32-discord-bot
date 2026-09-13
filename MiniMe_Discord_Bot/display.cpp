@@ -104,14 +104,14 @@ void drawDashboard() {
     u8g2.drawStr(dateX, 15, dateBuf);
   }
 
-  unsigned long d = 0, h = 0, m = 0;
-  uptimeDhms(d, h, m);
-  char upTempBuf[32];
+  unsigned long d = 0, h = 0, m = 0, s = 0;
+  uptimeDhms(d, h, m, s);
+  char upTempBuf[36];
   if (dashTempC > -998.0f) {
-    snprintf(upTempBuf, sizeof(upTempBuf), "Up:%4lud%2luh%2lum T:%3.0fF/%3.0fC",
-             d, h, m, dashTempF, dashTempC);
+    snprintf(upTempBuf, sizeof(upTempBuf), "Up:%lud%luh%lum%lus T:%3.0fF/%3.0fC",
+             d, h, m, s, dashTempF, dashTempC);
   } else {
-    snprintf(upTempBuf, sizeof(upTempBuf), "Up:%4lud%2luh%2lum T:--Error--", d, h, m);
+    snprintf(upTempBuf, sizeof(upTempBuf), "Up:%lud%luh%lum%lus T:--Error--", d, h, m, s);
   }
   u8g2.drawStr(0, 23, upTempBuf);
 

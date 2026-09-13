@@ -99,7 +99,7 @@ bool fetchGuildMembersAtStartup();
 bool sendDiscordMessage(const String& channelId, const String& content, bool suppressEmbeds = false);
 String getSystemInfo();
 void boardMemTotals(uint32_t& memFree, uint32_t& memTotal);
-void uptimeDhms(unsigned long& days, unsigned long& hours, unsigned long& minutes);
+void uptimeDhms(unsigned long& days, unsigned long& hours, unsigned long& minutes, unsigned long& seconds);
 
 // ====== DISPLAY ======
 extern U8G2_SSD1327_WS_128X128_F_HW_I2C u8g2;

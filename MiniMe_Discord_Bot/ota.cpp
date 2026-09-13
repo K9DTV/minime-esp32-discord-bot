@@ -78,12 +78,6 @@ String otaStatusText() {
   s += "• **Hostname:** `";
   s += OTA_HOSTNAME;
   s += ".local`\n";
-  s += "• **Port:** 3232 (ArduinoOTA)\n";
-  s += "• **Upload:** Tools → Port → network IP (not COM)\n";
-  s += "• **Serial Monitor:** USB + COM only (network has no Monitor)\n";
-  s += "• Password is `OTA_PASSWORD` in secrets.h\n";
-  s += "• Partition Scheme must include **OTA** (dual app slots)\n";
-  s += "• Bot stays Online until OTA starts, then Gateway pauses for the upload\n";
-  s += "• If connect fails: allow Arduino IDE through Windows Firewall";
+  s += "• **Port:** 3232 (ArduinoOTA)";
   return s;
 }

@@ -418,17 +418,17 @@ void handleCommand(const String& content, const String& authorId, const String& 
       "• `!iss` — Current International Space Station position.\n"
       "• `!news` — Space and high-tech science headlines.\n"
       "• `!physics` — Latest arXiv physics papers.\n"
-      "• `!sysinfo` — Displays system diagnostics (uptime, heap, RSSI, etc.).\n"
+      "• `!sys` — Displays system diagnostics (uptime, heap, RSSI, etc.).\n"
       "• `!temp` — Reads the current indoor temperature sensor.\n"
       "• `!time` — Displays the current bot time.\n"
-      "• `!weather <zip>` — Fetches the weather report for a US ZIP code.\n\n"
+      "• `!weather <zip>` — Fetches the weather report for a US ZIP code.\n"
+      "• `!ota` — Wi-Fi firmware update info (IP / hostname).\n\n"
       "**👑 Owner-Only Commands:**\n"
       "• `!led on/off` / `!led <r> <g> <b>` — RGB NeoPixel (0–255 per channel).\n"
       "• `!servo <0-90>` — Moves the servo motor to a specific angle.\n"
       "• `!set1 on` / `!set1 off` — Controls digital output pin 1.\n"
       "• `!set2 on` / `!set2 off` — Controls digital output pin 2.\n"
-      "• `!clear` — Stops set1/set2 flash and forces both outputs off.\n"
-      "• `!ota` — Wi-Fi firmware update info (IP / hostname).";
+      "• `!clear` — Stops set1/set2 flash and forces both outputs off.";
     sendDiscordMessage(channelId, helpMsg);
     showTransient("Help", "Command Sent");
     return;
@@ -486,9 +486,14 @@ void handleCommand(const String& content, const String& authorId, const String& 
     }
     return;
   }
-  if (cmdWord == "!sysinfo") {
+  if (cmdWord == "!sys") {
     sendDiscordMessage(channelId, getSystemInfo(), true);
-    showTransient("SysInfo", "Sent");
+    showTransient("Sys", "Sent");
+    return;
+  }
+  if (cmdWord == "!ota") {
+    sendDiscordMessage(channelId, otaStatusText());
+    showTransient("OTA", WiFi.localIP().toString());
     return;
   }
   if (cmdWord == "!time") {
@@ -533,7 +538,7 @@ void handleCommand(const String& content, const String& authorId, const String& 
     char d = cmdWord.charAt(4);
     if (d == '1' || d == '2') setN = d - '0';
   }
-  if (cmdWord == "!led" || setN != 0 || cmdWord == "!servo" || cmdWord == "!ota" || cmdWord == "!clear") {
+  if (cmdWord == "!led" || setN != 0 || cmdWord == "!servo" || cmdWord == "!clear") {
     if (!isOwner(authorId)) {
       if (!isDM) {
         sendDiscordMessage(channelId, "You are not allowed to use this command.");
@@ -544,11 +549,6 @@ void handleCommand(const String& content, const String& authorId, const String& 
       clearSetOutputs();
       sendDiscordMessage(channelId, "set1/set2 cleared (off)");
       showTransient("clear", "set1 set2 OFF");
-      return;
-    }
-    if (cmdWord == "!ota") {
-      sendDiscordMessage(channelId, otaStatusText());
-      showTransient("OTA", WiFi.localIP().toString());
       return;
     }
     if (cmdWord == "!led") {
@@ -617,7 +617,7 @@ void handleCommand(const String& content, const String& authorId, const String& 
 
 void backgroundTasks() {
   runAskFromLoop();
-  // Boot only: one !sysinfo + !help in TARGET_CHANNEL_ID after Gateway is up. No repeating auto reports.
+  // Boot only: one !sys + !help in TARGET_CHANNEL_ID after Gateway is up. No repeating auto reports.
   if (lastSysInfoMillis != 0) return;
   if (!gatewayConnected || !identified) return;
   lastSysInfoMillis = millis();

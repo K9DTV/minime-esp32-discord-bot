@@ -12,11 +12,12 @@ void boardMemTotals(uint32_t& memFree, uint32_t& memTotal) {
   memFree = ESP.getFreeHeap() + psramFree;
 }
 
-void uptimeDhms(unsigned long& days, unsigned long& hours, unsigned long& minutes) {
+void uptimeDhms(unsigned long& days, unsigned long& hours, unsigned long& minutes, unsigned long& seconds) {
   unsigned long sec = millis() / 1000;
   days = sec / 86400;
   hours = (sec % 86400) / 3600;
   minutes = (sec % 3600) / 60;
+  seconds = sec % 60;
   if (days > 9999) days = 9999;
 }
 
@@ -24,9 +25,9 @@ String getSystemInfo() {
   long rssi = WiFi.RSSI();
   uint32_t freeHeap = 0, totalHeap = 0;
   boardMemTotals(freeHeap, totalHeap);
-  unsigned long days = 0, hours = 0, minutes = 0;
-  uptimeDhms(days, hours, minutes);
-  String uptimeStr = String(days) + "d " + String(hours) + "h " + String(minutes) + "m";
+  unsigned long days = 0, hours = 0, minutes = 0, seconds = 0;
+  uptimeDhms(days, hours, minutes, seconds);
+  String uptimeStr = String(days) + "d " + String(hours) + "h " + String(minutes) + "m " + String(seconds) + "s";
   return "📊 **System Diagnostics:**\n"
          "• **Uptime:** " + uptimeStr + "\n"
          "• **Free Heap:** " + String((unsigned long)freeHeap) + " / " +

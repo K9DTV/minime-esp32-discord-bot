@@ -10,16 +10,16 @@ MiniMe is firmware for a **WeAct Studio ESP32-S3-N16R8** that runs a Discord bot
 
 *Breadboard prototype: WeAct Studio ESP32-S3-N16R8, 128x128 SSD1327 (GND / VCC / SCL / SDA), two discrete LEDs, GPIO 4 touch wake pad (yellow wire loop), and DS18B20 on GPIO 10. Sensor fail on the OLED is `T:--Error--`.*
 
-**Status:** shipped breadboard firmware · **v0.4.95** · green CI compile · PCB / desk case still planned (see Ongoing project).
+**Status:** shipped breadboard firmware · **v0.5.00** · green CI compile · PCB / desk case still planned (see Ongoing project).
 
 I find this working well and have not found any bugs. Unless I find something to add to its function, or a bug, this is now shipped code.
 
-After Wi-Fi connects, MiniMe serves a LAN web dashboard at `http://<board-ip>/` (Display, SysInfo, LOG, Serial).
-**Chrome note:** if Chrome flips `http://` to `https://` after a second, that is a Chrome “Always use secure connections” / HTTPS-upgrade setting for private sites — not MiniMe. Other browsers keep HTTP. Use `http://<board-ip>/` or turn off upgrades for private sites.
+After Wi-Fi connects, MiniMe serves a LAN web dashboard at `http://<board-ip>:8080/` (Display, SysInfo, LOG, Serial). Theme matches k9dtv.com (light/dark, local assets). IC chips: theme (sun/moon) and **Display** / **Log** layout (four panels vs Display + SysInfo only).
+**Chrome note:** if Chrome flips `http://` to `https://` after a second, that is a Chrome “Always use secure connections” / HTTPS-upgrade setting for private sites — not MiniMe. Other browsers keep HTTP. Use `http://<board-ip>:8080/` or turn off upgrades for private sites.
 
 ![MiniMe LAN web UI — Display meters aligned, SysInfo, LOG, Serial](docs/web-ui-display.png)
 
-*LAN web UI (v0.4.85): Sig / Heap / Srv bars share one left edge and stop at the Display panel edge.*
+*LAN web UI (v0.5.00): light/dark + Display/Log layout chips; Sig / Heap / Srv bars share one left edge.*
 
 Current version: see `VERSION` and `CHANGELOG.md`. License: see `LICENSE` (MIT for original MiniMe files only).
 
@@ -30,9 +30,10 @@ AI helped with firmware edits, multi-file layout, and GitHub updates. I owned th
 
 Firmware on this repo is **shipped**. Hardware and optional extras still on the list:
 
-- **Wireless firmware updates** — update the ESP32 over the network without a USB cable each time
-- **Mention / DM indicators on `set1` / `set2`** — DM to the bot flashes **set1** at 10 Hz; @mention of `OWNER_ID_STR` flashes **set2** at 10 Hz. Owner `!clear` turns both off.
+- **Mention / DM indicators on `set1` / `set2`** — DM to the bot flashes **set1** at 1 Hz (50%); @mention of `OWNER_ID_STR` flashes **set2** at 1 Hz (50%). Owner `!clear` turns both off.
 - **PCB and desk case** — move off the breadboard onto a custom board and enclosure that can sit on my desk
+
+Done in **v0.5.00:** Wi-Fi ArduinoOTA (`!ota`), LAN light/dark + Display/Log layout.
 
 ---
 
@@ -49,7 +50,8 @@ Same list Discord shows for `!help`:
 - `!iss` — International Space Station position
 - `!news` — space / high-tech headlines
 - `!physics` — latest arXiv physics papers
-- `!sysinfo` — uptime, free heap (internal + 8MB PSRAM), Wi-Fi RSSI, gateway, USB VBUS
+- `!sys` — uptime (`d h m s`), free heap (internal + 8MB PSRAM), Wi-Fi RSSI, gateway, USB VBUS
+- `!ota` — Wi-Fi ArduinoOTA info (IP / hostname / port 3232)
 - `!temp` — indoor DS18B20 temperature
 - `!time` — bot local time (US Pacific, DST aware)
 - `!weather <zip>` — US ZIP weather (OpenWeatherMap)
@@ -66,10 +68,10 @@ Same list Discord shows for `!help`:
 
 Sent once to `TARGET_CHANNEL_ID` after Gateway connects (boot only):
 
-- `!sysinfo` diagnostics
+- `!sys` diagnostics
 - `!help` command list
 
-No repeating 4-hour sysinfo or daily temperature summaries. Commands still work in `TARGET_CHANNEL_ID`, `TARGET_CHANNEL_ID1`, and DMs.
+No repeating 4-hour sys posts or daily temperature summaries. Commands still work in `TARGET_CHANNEL_ID`, `TARGET_CHANNEL_ID1`, and DMs.
 
 ### Bot Discord presence
 
@@ -98,7 +100,7 @@ Everything below runs on one **ESP32-S3**. Discord stays in the cloud; MiniMe ta
 - **Gateway** — live link for chat commands, presence, Online/Idle, heartbeats (must not stall during long HTTPS).
 - **REST** — bot posts replies and loads member names; also pulls science/weather/AI over HTTPS/HTTP (`setInsecure` for Discord/API outbound).
 - **OLED** — always the status board; sleep blanks the panel only (Wi-Fi and Gateway stay up).
-- **LAN web UI** — same board status in a browser at `http://<board-ip>/` (Display, SysInfo, LOG, Serial); refreshes about once a second; does not replace OLED. The **LOG** panel is capped at **20 KB**; if the next line would go over, LOG is cleared (avoids unbounded growth that could look like a hang or memory bug). **Serial** stays a fixed 12-line ring.
+- **LAN web UI** — same board status in a browser at `http://<board-ip>:8080/` (Display, SysInfo, LOG, Serial); light/dark theme and Display/Log layout chips; refreshes about once a second; does not replace OLED. The **LOG** panel is capped at **20 KB**; if the next line would go over, LOG is cleared (avoids unbounded growth that could look like a hang or memory bug). **Serial** stays a fixed 12-line ring.
 - **Touch** — wakes the OLED only; does not change Discord status or fire GPIO commands.
 
 ### Why this is hard (on one MCU)
@@ -189,7 +191,7 @@ Use `#define` (not `const char*`) so every `.cpp` can include `secrets.h` withou
 | `DEEPSEEK_API_KEY` | DeepSeek for `!ask` |
 | `BOT_GUILD_ID` | One guild to load members from at boot (numeric snowflake) |
 | `OWNER_ID_STR` | Who can run LED / set1 / set2 / servo |
-| `TARGET_CHANNEL_ID` | Commands + one-time boot sysinfo/help |
+| `TARGET_CHANNEL_ID` | Commands + one-time boot `!sys`/help |
 | `TARGET_CHANNEL_ID1` | Second channel where commands are allowed |
 
 IDs are **digits only**. Paste them as C strings, for example `"123456789012345678"`.
@@ -365,7 +367,7 @@ USB port voltage moves the raw touch numbers. MiniMe reads VBUS through a **divi
 1. **Do not** connect USB 5V directly to GPIO 1 (max ~3.3 V on the pin).
 2. Wire: **USB 5V (VBUS)** → **10 kΩ** → **GPIO 1** → **10 kΩ** → **GND**.
 3. Change `PIN_USB_VBUS_ADC` / `USB_VBUS_R_HI` / `USB_VBUS_R_LO` in `minime_config.h` if your divider or pin differs.
-4. `!sysinfo` reports **USB VBUS** in volts to millivolt resolution (about **5.000 V** with a 1:1 divider on a healthy 5 V port). An unwired pin will read junk; compensation is skipped if the reading is below **1000 mV**. The ADC is sampled at most every **500 ms**.
+4. `!sys` reports **USB VBUS** in volts to millivolt resolution (about **5.000 V** with a 1:1 divider on a healthy 5 V port). An unwired pin will read junk; compensation is skipped if the reading is below **1000 mV**. The ADC is sampled at most every **500 ms**.
 
 ### How it works in firmware
 
