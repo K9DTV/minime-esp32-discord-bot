@@ -17,7 +17,18 @@ I find this working well and have not found any bugs. Unless I find something to
 After Wi-Fi connects, MiniMe serves a LAN web dashboard at `http://<board-ip>/` (Display, SysInfo, LOG, Serial). Theme matches k9dtv.com (light/dark, local assets). IC chips: theme (sun/moon) and **Display** / **Log** layout (four panels vs Display + SysInfo only).
 **Chrome note:** if Chrome flips `http://` to `https://` after a second, that is a Chrome “Always use secure connections” / HTTPS-upgrade setting for private sites — not MiniMe. Other browsers keep HTTP. Use `http://<board-ip>/` or turn off upgrades for private sites.
 
-![MiniMe LAN web UI — Display meters aligned, SysInfo, LOG, Serial](docs/web-ui-display.png)
+<table>
+  <tr>
+    <td align="center">
+      <img src="docs/ESP32S3-Web-UI.png" alt="MiniMe LAN web UI dark theme" width="480"><br>
+      <em>Dark theme</em>
+    </td>
+    <td align="center">
+      <img src="docs/ESP32S3-Web-UI-Bright.png" alt="MiniMe LAN web UI light theme" width="480"><br>
+      <em>Light theme</em>
+    </td>
+  </tr>
+</table>
 
 *LAN web UI (v0.5.00): light/dark + Display/Log layout chips; Sig / Heap / Srv bars share one left edge.*
 
