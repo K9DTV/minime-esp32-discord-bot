@@ -86,52 +86,9 @@ MiniMe’s own Discord status (green Online / yellow Idle) in Discord:
 
 Everything below runs on one **ESP32-S3**. Discord stays in the cloud; MiniMe talks to it two ways, paints the OLED, serves a LAN web dashboard, and wakes the panel from a touch pad.
 
-```mermaid
-flowchart TB
-  subgraph cloud [Cloud]
-    direction LR
-    DG[Discord Gateway websocket]
-    DR[Discord HTTPS REST]
-    EXT[Public APIs: weather NASA arXiv DeepSeek ISS news]
-  end
+![MiniMe architecture flowchart — same layout as k9dtv.com/project-minime.html](docs/arch-flow.svg)
 
-  subgraph board [" "]
-    direction TB
-    subgraph mid [ ]
-      direction LR
-      GW[Gateway: events heartbeat presence]
-      REST[REST: post messages fetch members]
-      CMD[Command handler + scheduled posts]
-    end
-    subgraph hw [ ]
-      direction LR
-      OLED[SSD1327 OLED dashboard]
-      TOUCH[Touch GPIO 4 + USB VBUS compensate]
-      IO[GPIO servo NeoPixel DS18B20]
-    end
-    WEB[LAN web UI :80 Display SysInfo LOG Serial]
-    subgraph foot [ ]
-      direction LR
-      WEACT[WeAct ESP32-S3]
-      BR[http board-ip]
-    end
-    WEB -->|HTTP GET / and /api/status| BR
-  end
-
-  DG <-->|TLS websocket| GW
-  DR <-->|TLS HTTPS| REST
-  EXT <-->|HTTP / HTTPS| REST
-  GW -->|MESSAGE_CREATE presence| CMD
-  REST --> CMD
-  CMD -->|rows 15-16 + bars| OLED
-  TOUCH -->|wake / full contrast| OLED
-  CMD --> IO
-  IO -->|temp servo| OLED
-  OLED -.->|same status fields| WEB
-  IO -.->|RSSI heap servo temp| WEB
-  GW -.->|log lines| WEB
-  OLED ~~~ WEACT
-```
+*Same flowchart as the project page: tight Cloud and board boxes, WeAct under OLED in line with http board-ip.*
 
 - **Gateway** — live link for chat commands, presence, Online/Idle, heartbeats (must not stall during long HTTPS).
 - **REST** — bot posts replies and loads member names; also pulls science/weather/AI over HTTPS/HTTP.

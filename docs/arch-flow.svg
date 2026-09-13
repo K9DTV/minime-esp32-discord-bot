@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="520" viewBox="0 0 680 520" role="img" aria-label="MiniMe architecture flowchart">
+  <rect width="680" height="520" fill="#0b0d12"/>
+  <defs>
+    <style>
+      .box { fill: #141820; stroke: #2a3344; stroke-width: 1; }
+      .group { fill: rgba(20,24,32,0.55); stroke: #2a3344; stroke-width: 1; }
+      .t { fill: #e8edf5; font-family: Segoe UI, Helvetica, Arial, sans-serif; font-size: 11px; text-anchor: middle; }
+      .lbl { fill: #8899aa; font-family: Segoe UI, Helvetica, Arial, sans-serif; font-size: 11px; letter-spacing: 0.08em; text-anchor: middle; text-transform: uppercase; }
+      .cyan { fill: #00d4ff; font-family: Segoe UI, Helvetica, Arial, sans-serif; font-size: 9px; text-anchor: middle; }
+      .line { stroke: #00d4ff; stroke-width: 2; }
+    </style>
+  </defs>
+
+  <!-- Cloud group (tight) -->
+  <rect class="group" x="52" y="12" width="576" height="88" rx="6"/>
+  <text class="lbl" x="340" y="32">CLOUD</text>
+  <rect class="box" x="64" y="42" width="168" height="48" rx="5"/>
+  <text class="t" x="148" y="62"><tspan x="148" dy="0">Discord Gateway</tspan><tspan x="148" dy="13">websocket</tspan></text>
+  <line class="line" x1="236" y1="66" x2="254" y2="66"/>
+  <rect class="box" x="256" y="42" width="168" height="48" rx="5"/>
+  <text class="t" x="340" y="62"><tspan x="340" dy="0">Discord HTTPS</tspan><tspan x="340" dy="13">REST</tspan></text>
+  <line class="line" x1="428" y1="66" x2="446" y2="66"/>
+  <rect class="box" x="448" y="42" width="168" height="48" rx="5"/>
+  <text class="t" x="532" y="55"><tspan x="532" dy="0">Public APIs: weather</tspan><tspan x="532" dy="12">NASA arXiv DeepSeek</tspan><tspan x="532" dy="12">ISS news</tspan></text>
+
+  <!-- Cloud to board links -->
+  <line class="line" x1="148" y1="100" x2="148" y2="118"/>
+  <text class="cyan" x="148" y="132">TLS websocket</text>
+  <line class="line" x1="148" y1="138" x2="148" y2="154"/>
+  <line class="line" x1="340" y1="100" x2="340" y2="118"/>
+  <text class="cyan" x="340" y="132">TLS HTTPS</text>
+  <line class="line" x1="340" y1="138" x2="340" y2="154"/>
+  <line class="line" x1="532" y1="100" x2="532" y2="118"/>
+  <text class="cyan" x="532" y="132">HTTP / HTTPS</text>
+  <line class="line" x1="532" y1="138" x2="532" y2="154"/>
+
+  <!-- Board group (tight) -->
+  <rect class="group" x="52" y="154" width="576" height="350" rx="6"/>
+
+  <rect class="box" x="64" y="168" width="168" height="48" rx="5"/>
+  <text class="t" x="148" y="185"><tspan x="148" dy="0">Gateway: events</tspan><tspan x="148" dy="13">heartbeat presence</tspan></text>
+  <line class="line" x1="236" y1="192" x2="254" y2="192"/>
+  <rect class="box" x="256" y="168" width="168" height="48" rx="5"/>
+  <text class="t" x="340" y="185"><tspan x="340" dy="0">REST: post messages</tspan><tspan x="340" dy="13">fetch members</tspan></text>
+  <line class="line" x1="428" y1="192" x2="446" y2="192"/>
+  <rect class="box" x="448" y="168" width="168" height="48" rx="5"/>
+  <text class="t" x="532" y="185"><tspan x="532" dy="0">Command handler +</tspan><tspan x="532" dy="13">scheduled posts</tspan></text>
+
+  <line class="line" x1="148" y1="216" x2="148" y2="236"/>
+  <line class="line" x1="340" y1="216" x2="340" y2="236"/>
+  <line class="line" x1="532" y1="216" x2="532" y2="236"/>
+
+  <rect class="box" x="64" y="236" width="168" height="48" rx="5"/>
+  <text class="t" x="148" y="256"><tspan x="148" dy="0">SSD1327 OLED</tspan><tspan x="148" dy="13">dashboard</tspan></text>
+  <line class="line" x1="236" y1="260" x2="254" y2="260"/>
+  <rect class="box" x="256" y="236" width="168" height="48" rx="5"/>
+  <text class="t" x="340" y="253"><tspan x="340" dy="0">Touch GPIO 4 +</tspan><tspan x="340" dy="13">USB VBUS compensate</tspan></text>
+  <line class="line" x1="428" y1="260" x2="446" y2="260"/>
+  <rect class="box" x="448" y="236" width="168" height="48" rx="5"/>
+  <text class="t" x="532" y="253"><tspan x="532" dy="0">GPIO servo NeoPixel</tspan><tspan x="532" dy="13">DS18B20</tspan></text>
+
+  <!-- Center drop to LAN -->
+  <line class="line" x1="340" y1="284" x2="340" y2="304"/>
+
+  <rect class="box" x="256" y="304" width="168" height="48" rx="5"/>
+  <text class="t" x="340" y="321"><tspan x="340" dy="0">LAN web UI :80 Display</tspan><tspan x="340" dy="13">SysInfo LOG Serial</tspan></text>
+
+  <line class="line" x1="340" y1="352" x2="340" y2="368"/>
+  <text class="cyan" x="340" y="382">HTTP GET / and /api/status</text>
+  <line class="line" x1="340" y1="388" x2="340" y2="404"/>
+
+  <!-- Foot: WeAct under OLED, http under LAN -->
+  <text class="lbl" x="148" y="434">WEACT ESP32-S3</text>
+  <rect class="box" x="256" y="412" width="168" height="48" rx="5"/>
+  <text class="t" x="340" y="440">http board-ip</text>
+</svg>
