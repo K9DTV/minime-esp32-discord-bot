@@ -27,7 +27,7 @@
   Board: ESP32S3 Dev Module (required — not generic ESP32 Dev Module)
   USB CDC On Boot = Enabled
   USB Mode = Hardware CDC and JTAG
- MmLog does not print to the Serial port; open http://<board-ip>/ for LOG.
+ MmLog does not print to the Serial port; open https://<board-ip>/ for LOG.
  Port still enumerates for upload / OTA; Monitor will be quiet.
 
  Wi-Fi OTA: first flash still via USB. Then Tools -> Port -> minime network port.

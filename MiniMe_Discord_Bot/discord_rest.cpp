@@ -70,11 +70,12 @@ bool sendDiscordMessage(const String& channelId, const String& content, bool sup
     "Connection: close\r\n\r\n" +
     body;
   httpsClient.print(request);
-  unsigned long deadline = millis() + 5000UL;
+  unsigned long deadline = millis() + 8000UL;
   String statusLine;
   bool chunked = false;
   int contentLength = -1;
   if (!httpsAwaitHeaders(deadline, false, statusLine, chunked, contentLength)) {
+    httpsClient.stop();
     httpsInUse = false;
     return false;
   }
@@ -103,8 +104,9 @@ bool skipHttpHeaders(Client& client, unsigned long timeoutMs) {
 
 bool httpsConnect(const char* host, uint32_t timeoutMs) {
   httpsClient.stop();
-  httpsClient.setInsecure();
+  httpsClient.setInsecure(); // Discord outbound: encrypt only, no CA verify
   httpsClient.setTimeout(timeoutMs);
+  httpsClient.setHandshakeTimeout((timeoutMs + 999UL) / 1000UL);
   return httpsClient.connect(host, 443);
 }
 

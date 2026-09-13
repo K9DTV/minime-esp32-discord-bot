@@ -1,6 +1,14 @@
 # Changelog
 
-Older sections describe that release as shipped. Current firmware and docs are **0.4.90** (see `VERSION` and README).
+Older sections describe that release as shipped. Current firmware and docs are **0.4.92** (see `VERSION` and README).
+
+## 0.4.92
+
+- LAN web UI: HTTPS on port 443 (self-signed); HTTP :80 redirects to HTTPS. Discord outbound TLS back to `setInsecure` / `beginSSL` (no CA verify). Confirm flash via `Display · v0.4.92`.
+
+## 0.4.91
+
+- HTTPS REST: verify server certificates with the ESP32 CA cert bundle (removed `setInsecure()`). Confirm flash via `Display · v0.4.91`.
 
 ## 0.4.90
 

@@ -63,14 +63,14 @@
   <line class="line" x1="340" y1="284" x2="340" y2="304"/>
 
   <rect class="box" x="256" y="304" width="168" height="48" rx="5"/>
-  <text class="t" x="340" y="321"><tspan x="340" dy="0">LAN web UI :80 Display</tspan><tspan x="340" dy="13">SysInfo LOG Serial</tspan></text>
+  <text class="t" x="340" y="321"><tspan x="340" dy="0">LAN web UI :443 Display</tspan><tspan x="340" dy="13">SysInfo LOG Serial</tspan></text>
 
   <line class="line" x1="340" y1="352" x2="340" y2="368"/>
-  <text class="cyan" x="340" y="382">HTTP GET / and /api/status</text>
+  <text class="cyan" x="340" y="382">HTTPS GET / and /api/status</text>
   <line class="line" x1="340" y1="388" x2="340" y2="404"/>
 
   <!-- Foot: WeAct under OLED, http under LAN -->
   <text class="lbl" x="148" y="434">WEACT ESP32-S3</text>
   <rect class="box" x="256" y="412" width="168" height="48" rx="5"/>
-  <text class="t" x="340" y="440">http board-ip</text>
+  <text class="t" x="340" y="440">https board-ip</text>
 </svg>

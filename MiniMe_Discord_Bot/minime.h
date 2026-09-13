@@ -57,6 +57,7 @@ void noteBotActivity();
 void updateBotPresenceIdle();
 void sendBotPresence(const char* status, bool afk);
 void applyCpuForIdleState();
+void gwLogEvent(const String& ev);
 void sendIdentify();
 void sendResume();
 void sendHeartbeat();

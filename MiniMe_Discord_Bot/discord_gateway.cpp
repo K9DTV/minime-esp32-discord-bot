@@ -48,6 +48,10 @@ static void gwLogAppend(const String& ev) {
   }
 }
 
+void gwLogEvent(const String& ev) {
+  gwLogAppend(ev);
+}
+
 // kind = coarse category (dedupe); detail = full text for first DROP_START / new kinds
 static void gwNoteDrop(const String& kind, const String& detail) {
   if (!gwInDropState) {

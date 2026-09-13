@@ -10,11 +10,11 @@ MiniMe is firmware for a **WeAct Studio ESP32-S3-N16R8** that runs a Discord bot
 
 *Breadboard prototype: WeAct Studio ESP32-S3-N16R8, 128x128 SSD1327 (GND / VCC / SCL / SDA), two discrete LEDs, GPIO 4 touch wake pad (yellow wire loop), and DS18B20 on GPIO 10. Sensor fail on the OLED is `T:--Error--`.*
 
-**Status:** shipped breadboard firmware · **v0.4.90** · green CI compile · PCB / desk case still planned (see Ongoing project).
+**Status:** shipped breadboard firmware · **v0.4.92** · green CI compile · PCB / desk case still planned (see Ongoing project).
 
 I find this working well and have not found any bugs. Unless I find something to add to its function, or a bug, this is now shipped code.
 
-After Wi-Fi connects, MiniMe also serves a LAN web dashboard at `http://<board-ip>/` (Display, SysInfo, LOG, Serial).
+After Wi-Fi connects, MiniMe serves a LAN web dashboard at `https://<board-ip>/` (port 443). The cert is **self-signed**, so the browser will warn (Not secure / Your connection is not private). That is expected on a LAN IP. Click **Advanced** (Chrome/Edge) or **Show Details** (Firefox), then **Proceed to \<board-ip\> (unsafe)** / **Accept the Risk and Continue**. After that, the page loads over HTTPS. Plain `http://<board-ip>/` redirects to HTTPS.
 
 ![MiniMe LAN web UI — Display meters aligned, SysInfo, LOG, Serial](docs/web-ui-display.png)
 
@@ -92,12 +92,12 @@ Everything below runs on one **ESP32-S3**. Discord stays in the cloud; MiniMe ta
 
 ![MiniMe architecture flowchart — same layout as k9dtv.com/project-minime.html](docs/arch-flow.svg)
 
-*Same flowchart as the project page: tight Cloud and board boxes, WeAct under OLED in line with http board-ip.*
+*Same flowchart as the project page: tight Cloud and board boxes, WeAct under OLED in line with https board-ip.*
 
 - **Gateway** — live link for chat commands, presence, Online/Idle, heartbeats (must not stall during long HTTPS).
-- **REST** — bot posts replies and loads member names; also pulls science/weather/AI over HTTPS/HTTP.
+- **REST** — bot posts replies and loads member names; also pulls science/weather/AI over HTTPS/HTTP (`setInsecure` for Discord/API outbound).
 - **OLED** — always the status board; sleep blanks the panel only (Wi-Fi and Gateway stay up).
-- **LAN web UI** — same board status in a browser at `http://<board-ip>/` (Display, SysInfo, LOG, Serial); refreshes about once a second; does not replace OLED. The **LOG** panel is capped at **20 KB**; if the next line would go over, LOG is cleared (avoids unbounded growth that could look like a hang or memory bug). **Serial** stays a fixed 12-line ring.
+- **LAN web UI** — same board status in a browser at `https://<board-ip>/` (Display, SysInfo, LOG, Serial); refreshes about once a second; does not replace OLED. Self-signed TLS: use Advanced → Proceed/Accept once. The **LOG** panel is capped at **20 KB**; if the next line would go over, LOG is cleared (avoids unbounded growth that could look like a hang or memory bug). **Serial** stays a fixed 12-line ring.
 - **Touch** — wakes the OLED only; does not change Discord status or fire GPIO commands.
 
 ### Why this is hard (on one MCU)
@@ -125,7 +125,7 @@ Font is **5x7** with 1px padding (**8px** per row). U8g2 `drawStr(x, y)` uses **
 |---|---|---|
 | 0 | 7 | `MiniMe`, `GW:Good` / `GW:Bad`, right-justified `HH:MM:SS` |
 | 2 | 15 | `Bot:Online` / `Bot:Idle  ` (left, 10 chars); `Www Mmm dd YYYY` (right, 15 chars, space-padded day, fixed slot) |
-| 3 | 23 | `Up:xxxxdxxhxxm T:xxxF/xxxC` (space-padded); sensor fail: `T:--Error--` |
+| 3 | 23 | `Up:xd xh xm T:xxxF/xxxC` (spaces between d/h/m); sensor fail: `T:--Error--` |
 | 4 | 31 | `Sig:` Wi-Fi RSSI bar |
 | 5 | 39 | `Heap:` free memory bar (internal SRAM + 8MB PSRAM) |
 | 6 | 47 | `Srv:` servo position bar, **0-90°** (boot commands **45°**, half fill) |

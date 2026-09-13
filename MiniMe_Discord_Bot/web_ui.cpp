@@ -1,12 +1,16 @@
 #include "minime.h"
-#include <WebServer.h>
+#include <WiFi.h>
+#include <esp_https_server.h>
 #include "k9dtv_logo_svg.h"
+#include "lan_https_cert.h"
 
 // Display | SysInfo; under both LOG | Serial.
+// LAN UI is HTTPS on WEB_UI_PORT; plain HTTP on :80 redirects to https://IP/
 // Serial: fixed ring (drop top when full, new line at bottom); no scrollbar.
 // MmLog still feeds web only (USB Serial quiet). FULL/END headers stripped from LOG.
 
-static WebServer webServer(WEB_UI_PORT);
+static WiFiServer httpRedirect(WEB_UI_HTTP_REDIRECT_PORT);
+static httpd_handle_t httpsServer = NULL;
 static bool webUiReady = false;
 
 static const uint8_t WEB_FULL_N = 200;           // room to approach 20KB before wipe
@@ -157,10 +161,14 @@ static void dashFields(String& timeStr, String& dateStr, String& upStr,
            tmLocal.tm_mday, tmLocal.tm_year + 1900);
   dateStr = dateBuf;
 
-  unsigned long d = 0, h = 0, m = 0;
-  uptimeDhms(d, h, m);
+  unsigned long sec = millis() / 1000UL;
+  unsigned long days = sec / 86400UL;
+  if (days > 999UL) days = 999UL;
+  unsigned long mins = (sec % 86400UL) / 60UL;
+  unsigned long secs = sec % 60UL;
   char upBuf[24];
-  snprintf(upBuf, sizeof(upBuf), "%lud %luh %lum", d, h, m);
+  // Fixed-width fields so d/m/s stay put: "128d  55m 28s" / "  0d   5m  3s"
+  snprintf(upBuf, sizeof(upBuf), "%3lud %4lum %2lus", days, mins, secs);
   upStr = upBuf;
 
   rssi = WiFi.RSSI();
@@ -249,16 +257,16 @@ static void appendBrand(String& html) {
   html += F("<div class=\"top\"><header class=\"brand\">");
   html += F("<a class=\"logo-link\" href=\"https://k9dtv.com\" target=\"_blank\" rel=\"noopener\">");
   html += F("<img class=\"logo\" src=\"/logo.svg\" width=\"343\" height=\"107\" alt=\"K9DTV\"></a>");
-  html += F("<p class=\"sub\">MiniMe A Discord Server APP · v0.4.90</p></header></div>");
+  html += F("<p class=\"sub\">MiniMe A Discord Server APP</p></header></div>");
 }
 
-static void sendNoCacheHeaders() {
-  webServer.sendHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
-  webServer.sendHeader("Pragma", "no-cache");
-  webServer.sendHeader("Expires", "0");
+static void httpdNoCache(httpd_req_t* req) {
+  httpd_resp_set_hdr(req, "Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  httpd_resp_set_hdr(req, "Pragma", "no-cache");
+  httpd_resp_set_hdr(req, "Expires", "0");
 }
 
-static void handleRoot() {
+static String buildRootHtml() {
   String html;
   html.reserve(16000);
   html += F("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">");
@@ -272,7 +280,7 @@ static void handleRoot() {
   appendBrand(html);
 
   html += F("<div class=\"layout\">");
-  html += F("<section class=\"box\" id=\"box-display\"><h2>Display · v0.4.90</h2>");
+  html += F("<section class=\"box\" id=\"box-display\"><h2>Display · v0.4.92</h2>");
   html += F("<div id=\"dash\" class=\"dash muted\">Loading...</div></section>");
   html += F("<section class=\"box\" id=\"box-sysinfo\"><h2>SysInfo</h2>");
   html += F("<div id=\"sysinfo\" class=\"grid muted\">Loading...</div></section>");
@@ -325,11 +333,10 @@ static void handleRoot() {
   html += F("if(!r.ok){e.textContent='status HTTP '+r.status;e.hidden=false;return;}");
   html += F("render(JSON.parse(t));}catch(ex){e.textContent='status: '+(ex&&ex.message?ex.message:ex);e.hidden=false;}}");
   html += F("tick();setInterval(tick,1000);</script></body></html>");
-  sendNoCacheHeaders();
-  webServer.send(200, "text/html; charset=utf-8", html);
+  return html;
 }
 
-static void handleStatus() {
+static String buildStatusJson() {
   String timeStr, dateStr, upStr, msg1, msg2;
   int sigPct = 0, heapPct = 0, srvPct = 0;
   long rssi = 0;
@@ -414,13 +421,43 @@ static void handleStatus() {
   out += F("],\"serial\":[");
   appendRingJson(out, webSerialLines, WEB_SERIAL_N, webSerialHead, webSerialCount);
   out += F("]}");
-  sendNoCacheHeaders();
-  webServer.send(200, "application/json", out);
+  return out;
 }
 
-static void handleLogo() {
-  webServer.sendHeader("Cache-Control", "public, max-age=86400");
-  webServer.send_P(200, "image/svg+xml", K9DTV_LOGO_SVG);
+static esp_err_t httpsHandleRoot(httpd_req_t* req) {
+  String html = buildRootHtml();
+  httpdNoCache(req);
+  httpd_resp_set_type(req, "text/html; charset=utf-8");
+  return httpd_resp_send(req, html.c_str(), html.length());
+}
+
+static esp_err_t httpsHandleStatus(httpd_req_t* req) {
+  String out = buildStatusJson();
+  httpdNoCache(req);
+  httpd_resp_set_type(req, "application/json");
+  return httpd_resp_send(req, out.c_str(), out.length());
+}
+
+static esp_err_t httpsHandleLogo(httpd_req_t* req) {
+  httpd_resp_set_hdr(req, "Cache-Control", "public, max-age=86400");
+  httpd_resp_set_type(req, "image/svg+xml");
+  return httpd_resp_send(req, K9DTV_LOGO_SVG, strlen(K9DTV_LOGO_SVG));
+}
+
+static void handleHttpRedirectClient(WiFiClient& client) {
+  unsigned long t0 = millis();
+  while (client.connected() && client.available() == 0 && (millis() - t0) < 200UL) {
+    delay(1);
+  }
+  while (client.available()) {
+    (void)client.read();
+    if ((millis() - t0) > 200UL) break;
+  }
+  String loc = String("https://") + WiFi.localIP().toString() + "/";
+  client.print(F("HTTP/1.1 301 Moved Permanently\r\nLocation: "));
+  client.print(loc);
+  client.print(F("\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"));
+  client.stop();
 }
 
 void setupWebUi() {
@@ -430,21 +467,55 @@ void setupWebUi() {
   webSerialHead = 0;
   webSerialCount = 0;
   webLogAccLen = 0;
-  webServer.on("/", HTTP_GET, handleRoot);
-  webServer.on("/logo.svg", HTTP_GET, handleLogo);
-  webServer.on("/api/status", HTTP_GET, handleStatus);
-  webServer.begin();
+
+  httpd_ssl_config_t conf = HTTPD_SSL_CONFIG_DEFAULT();
+  conf.port_secure = WEB_UI_PORT;
+  conf.httpd.max_open_sockets = 2;
+  conf.httpd.stack_size = 12288;
+  conf.servercert = (const uint8_t*)LAN_SERVER_CERT_PEM;
+  conf.servercert_len = strlen(LAN_SERVER_CERT_PEM) + 1;
+  conf.prvtkey_pem = (const uint8_t*)LAN_SERVER_KEY_PEM;
+  conf.prvtkey_len = strlen(LAN_SERVER_KEY_PEM) + 1;
+
+  if (httpd_ssl_start(&httpsServer, &conf) != ESP_OK) {
+    MmLog.println("[WEB] HTTPS start failed");
+    MmLog.flushAll();
+    return;
+  }
+
+  httpd_uri_t uriRoot = {};
+  uriRoot.uri = "/";
+  uriRoot.method = HTTP_GET;
+  uriRoot.handler = httpsHandleRoot;
+  httpd_uri_t uriStatus = {};
+  uriStatus.uri = "/api/status";
+  uriStatus.method = HTTP_GET;
+  uriStatus.handler = httpsHandleStatus;
+  httpd_uri_t uriLogo = {};
+  uriLogo.uri = "/logo.svg";
+  uriLogo.method = HTTP_GET;
+  uriLogo.handler = httpsHandleLogo;
+  httpd_register_uri_handler(httpsServer, &uriRoot);
+  httpd_register_uri_handler(httpsServer, &uriStatus);
+  httpd_register_uri_handler(httpsServer, &uriLogo);
+
+  httpRedirect.begin();
+
   webUiReady = true;
-  MmLog.print("[WEB] http://");
+  MmLog.print("[WEB] https://");
   MmLog.print(WiFi.localIP().toString());
   MmLog.print(":");
   MmLog.println(WEB_UI_PORT);
+  MmLog.print("[WEB] http://");
+  MmLog.print(WiFi.localIP().toString());
+  MmLog.println("/ redirects to HTTPS");
   MmLog.flushAll();
 }
 
 void pumpWebUi() {
   if (!webUiReady) return;
-  webServer.handleClient();
+  WiFiClient client = httpRedirect.available();
+  if (client) handleHttpRedirectClient(client);
 }
 
 bool webUiKeepsCpuActive() {
