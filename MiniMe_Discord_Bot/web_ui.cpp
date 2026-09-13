@@ -216,6 +216,7 @@ main{max-width:56rem;margin:0 auto;padding:1rem}
 .urow .st,.urow .bt{color:var(--muted);text-align:right}
 .msg{margin:.45rem 0 0;padding:.35rem .45rem;border:1px solid #1a4050;color:var(--cyan);font-size:.85rem}
 .grid{display:grid;grid-template-columns:6.2rem 1fr;gap:.25rem .5rem;padding:.55rem .65rem;flex:1}
+#box-sysinfo .grid{gap:.14rem .5rem;padding:.35rem .65rem}
 .grid .k{color:var(--label);font-size:.78rem}.grid .v{word-break:break-word;font-size:.78rem}
 .muted{color:var(--muted)}.ok{color:var(--ok)}.bad{color:var(--bad)}
 .err{color:var(--bad);padding:.4rem .7rem;font-size:.85rem;grid-column:1/-1}
@@ -233,7 +234,7 @@ static void appendBrand(String& html) {
   html += F("<div class=\"top\"><header class=\"brand\">");
   html += F("<a class=\"logo-link\" href=\"https://k9dtv.com\" target=\"_blank\" rel=\"noopener\">");
   html += F("<img class=\"logo\" src=\"/logo.svg\" width=\"343\" height=\"107\" alt=\"K9DTV\"></a>");
-  html += F("<p class=\"sub\">MiniMe A Discord Server APP · v0.4.87</p></header></div>");
+  html += F("<p class=\"sub\">MiniMe A Discord Server APP · v0.4.88</p></header></div>");
 }
 
 static void sendNoCacheHeaders() {
@@ -256,7 +257,7 @@ static void handleRoot() {
   appendBrand(html);
 
   html += F("<div class=\"layout\">");
-  html += F("<section class=\"box\" id=\"box-display\"><h2>Display · v0.4.87</h2>");
+  html += F("<section class=\"box\" id=\"box-display\"><h2>Display · v0.4.88</h2>");
   html += F("<div id=\"dash\" class=\"dash muted\">Loading...</div></section>");
   html += F("<section class=\"box\" id=\"box-sysinfo\"><h2>SysInfo</h2>");
   html += F("<div id=\"sysinfo\" class=\"grid muted\">Loading...</div></section>");
@@ -295,7 +296,7 @@ static void handleRoot() {
   html += F("document.getElementById('sysinfo').className='grid';");
   html += F("document.getElementById('sysinfo').innerHTML=");
   html += F("row('IP',esc(j.ip))+row('OTA',esc(j.ota))+row('RSSI',esc(j.rssi)+' dBm')+");
-  html += F("row('Heap',esc(j.heapFree)+' / '+esc(j.heapTotal))+row('Uptime',esc(j.uptime))+");
+  html += F("row('CPU',esc(j.cpuMhz)+' MHz')+row('Heap',esc(j.heapFree)+' / '+esc(j.heapTotal))+row('Uptime',esc(j.uptime))+");
   html += F("row('Time',esc(j.time)+'  '+esc(j.date))+row('Gateway',esc(gwL))+row('Bot',esc(botL))+");
   html += F("row('Servo',esc(j.servo)+' deg')+row('Temp',tempL)+row('USB VBUS',esc(j.vbus))+");
   html += F("row('OLED',esc(j.oled))+(tr?row('Transient',tr):'');");
@@ -349,6 +350,8 @@ static void handleStatus() {
   out += String(memTotal);
   out += F(",\"heapPct\":");
   out += String(heapPct);
+  out += F(",\"cpuMhz\":");
+  out += String((unsigned)getCpuFrequencyMhz());
   out += F(",\"servo\":");
   out += String(lastServoDeg);
   out += F(",\"srvPct\":");

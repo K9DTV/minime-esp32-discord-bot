@@ -24,6 +24,8 @@ static bool gwInDropState = false;
 static unsigned long gwLastDropRemindMillis = 0;
 static unsigned long gwLastFullLogMillis = 0;
 static unsigned long gwReconnectIntervalMs = 5000;
+static const unsigned long GW_RECONNECT_BASE_MS = 5000UL;
+static const unsigned long GW_RECONNECT_MAX_MS = 5000UL; // was 60000; keep tries short so drop recovery stays under ~30s when Discord answers
 static unsigned long gwLastWifiKickMillis = 0;
 static String gwLastDropKind;
 static bool gwLoggedConnectDuringDrop = false;
@@ -116,12 +118,12 @@ void gwSerialService() {
 
 static void gwSetReconnectBackoff(bool reset) {
   if (reset) {
-    gwReconnectIntervalMs = 5000;
+    gwReconnectIntervalMs = GW_RECONNECT_BASE_MS;
   } else {
-    if (gwReconnectIntervalMs < 60000UL) {
-      unsigned long next = gwReconnectIntervalMs * 2UL;
-      gwReconnectIntervalMs = (next > 60000UL) ? 60000UL : next;
-    }
+    unsigned long next = gwReconnectIntervalMs * 2UL;
+    if (next < GW_RECONNECT_BASE_MS) next = GW_RECONNECT_BASE_MS;
+    if (next > GW_RECONNECT_MAX_MS) next = GW_RECONNECT_MAX_MS;
+    gwReconnectIntervalMs = next;
   }
   gatewayWS.setReconnectInterval(gwReconnectIntervalMs);
   gwLogAppend(String("RECONNECT_INTERVAL_MS=") + String(gwReconnectIntervalMs));
@@ -458,6 +460,7 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
           canResume = sessionId.length() > 0;
         }
         showTransient("Gateway", "Op9 session");
+        gwSetReconnectBackoff(true);
         gatewayWS.disconnect();
         bindGatewayForNextConnect(canResume && lastSeq > 0 && resumeGatewayHost.length() > 0);
         return;

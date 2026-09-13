@@ -1,6 +1,10 @@
 # Changelog
 
-Older sections describe that release as shipped. Current firmware and docs are **0.4.87** (see `VERSION` and README).
+Older sections describe that release as shipped. Current firmware and docs are **0.4.88** (see `VERSION` and README).
+
+## 0.4.88
+
+- Gateway reconnect: cap interval at 5s (no climb to 60s); reset backoff on OP9 so identify retry is not delayed. Best-effort under ~30s offline when Discord answers. Confirm flash via `Display · v0.4.88`.
 
 ## 0.4.87
 
