@@ -15,7 +15,6 @@ MiniMe is firmware for a **WeAct Studio ESP32-S3-N16R8** that runs a Discord bot
 I find this working well and have not found any bugs. Unless I find something to add to its function, or a bug, this is now shipped code.
 
 After Wi-Fi connects, MiniMe serves a LAN web dashboard at `http://<board-ip>/` (Display, SysInfo, LOG, Serial). Theme matches k9dtv.com (light/dark, local assets). IC chips: theme (sun/moon) and **Display** / **Log** layout (four panels vs Display + SysInfo only).
-**Chrome note:** if Chrome flips `http://` to `https://` after a second, that is a Chrome “Always use secure connections” / HTTPS-upgrade setting for private sites — not MiniMe. Other browsers keep HTTP. Use `http://<board-ip>/` or turn off upgrades for private sites.
 
 <table>
   <tr>
