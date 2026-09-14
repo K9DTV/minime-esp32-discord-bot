@@ -16,20 +16,12 @@ I find this working well and have not found any bugs. Unless I find something to
 
 After Wi-Fi connects, MiniMe serves a LAN web dashboard at `http://<board-ip>/` (Display, SysInfo, LOG, Serial). Theme matches k9dtv.com (light/dark, local assets). IC chips: theme (sun/moon) and **Display** / **Log** layout (four panels vs Display + SysInfo only).
 
-<table>
-  <tr>
-    <td align="center">
-      <img src="docs/ESP32S3-Web-UI.png" alt="MiniMe LAN web UI dark theme" width="480"><br>
-      <em>Dark theme</em>
-    </td>
-    <td align="center">
-      <img src="docs/ESP32S3-Web-UI-Bright.png" alt="MiniMe LAN web UI light theme" width="480"><br>
-      <em>Light theme</em>
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <img src="docs/ESP32S3-Web-UI.png#gh-dark-mode-only" alt="MiniMe LAN web UI (dark)" width="640">
+  <img src="docs/ESP32S3-Web-UI-Bright.png#gh-light-mode-only" alt="MiniMe LAN web UI (light)" width="640">
+</p>
 
-*LAN web UI (v0.5.00): light/dark + Display/Log layout chips; Sig / Heap / Srv bars share one left edge.*
+*LAN web UI (v0.5.1): light/dark + Display/Log layout chips; Sig / Heap / Srv bars share one left edge. Screenshot follows your GitHub theme (light/dark), same idea as k9dtv.com.*
 
 Current version: see `VERSION` and `CHANGELOG.md`. License: see `LICENSE` (MIT for original MiniMe files only).
 
