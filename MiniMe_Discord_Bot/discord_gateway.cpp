@@ -273,9 +273,9 @@ void updateBotPresenceIdle() {
 }
 
 // 80 MHz when OLED off and Discord Idle (identified). ESP32-S3 has no 100 MHz step.
+// Locked at 240 MHz (idle downclock correlated with full-chip resets).
 void applyCpuForIdleState() {
-  bool slow = displayAsleep && botDiscordStatus == 1 && identified;
-  uint32_t want = slow ? CPU_MHZ_OLED_OFF_BOT_IDLE : CPU_MHZ_ACTIVE;
+  uint32_t want = CPU_MHZ_ACTIVE;
   if (getCpuFrequencyMhz() == want) return;
   setCpuFrequencyMhz(want);
 }

@@ -1,6 +1,10 @@
 # Changelog
 
-Older sections describe that release as shipped. Current firmware and docs are **0.5.00** (see `VERSION` and README).
+Older sections describe that release as shipped. Current firmware and docs are **0.5.1** (see `VERSION` and README).
+
+## 0.5.1
+
+- CPU locked at **240 MHz** (no idle downclock to 80 MHz when OLED blank + Discord Idle). Test for unexplained full-chip resets. Confirm flash via `Display · v0.5.1`.
 
 ## 0.5.00
 

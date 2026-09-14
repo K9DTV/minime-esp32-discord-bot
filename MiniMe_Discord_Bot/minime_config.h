@@ -38,7 +38,7 @@ const size_t GW_DOC_PSRAM = 262144;   // 256KB
 const uint32_t BOARD_PSRAM_BYTES = 8UL * 1024UL * 1024UL; // this ESP32-S3 board
 const unsigned long BOT_PRESENCE_IDLE_MS = 300000UL; // 5 minutes quiet -> Idle
 const uint32_t CPU_MHZ_ACTIVE = 240;
-const uint32_t CPU_MHZ_OLED_OFF_BOT_IDLE = 80; // ESP32-S3 valid: 240/160/80 (100/120 not allowed)
+const uint32_t CPU_MHZ_OLED_OFF_BOT_IDLE = 80; // unused: CPU locked at 240 (see applyCpuForIdleState)
 
 // ====== DISPLAY STATE ======
 const unsigned long DASH_REFRESH_MS = 2000;

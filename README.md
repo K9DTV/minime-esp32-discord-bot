@@ -10,7 +10,7 @@ MiniMe is firmware for a **WeAct Studio ESP32-S3-N16R8** that runs a Discord bot
 
 *Breadboard prototype: WeAct Studio ESP32-S3-N16R8, 128x128 SSD1327 (GND / VCC / SCL / SDA), two discrete LEDs, GPIO 4 touch wake pad (yellow wire loop), and DS18B20 on GPIO 10. Sensor fail on the OLED is `T:--Error--`.*
 
-**Status:** shipped breadboard firmware · **v0.5.00** · green CI compile · PCB / desk case still planned (see Ongoing project).
+**Status:** shipped breadboard firmware · **v0.5.1** · green CI compile · PCB / desk case still planned (see Ongoing project).
 
 I find this working well and have not found any bugs. Unless I find something to add to its function, or a bug, this is now shipped code.
 

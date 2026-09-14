@@ -311,7 +311,7 @@ static String buildRootHtml() {
   appendBrand(html);
 
   html += F("<div class=\"layout\">");
-  html += F("<section class=\"box\" id=\"box-display\"><h2>Display · v0.5.00</h2>");
+  html += F("<section class=\"box\" id=\"box-display\"><h2>Display · v0.5.1</h2>");
   html += F("<div id=\"dash\" class=\"dash muted\">Loading...</div></section>");
   html += F("<section class=\"box\" id=\"box-sysinfo\"><h2>SysInfo</h2>");
   html += F("<div id=\"sysinfo\" class=\"grid muted\">Loading...</div></section>");
