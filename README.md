@@ -156,7 +156,7 @@ These **do not** reset the timer: signal / heap / servo bars, clock, uptime/temp
 
 These **wake** the panel and restart the 1-minute timer: **touch on the wake pad (GPIO 4)**, Discord commands, gateway connect/disconnect, `!display`, boot channel announce, and other status lines on rows 15-16. Presence updates for the eight user rows **do not** wake the panel.
 
-When the OLED is off **and** Discord status is Idle, CPU is **80 MHz**; otherwise **240 MHz**.
+CPU stays locked at **240 MHz** (v0.5.1; no idle downclock when OLED is blank).
 
 </details>
 
