@@ -64,7 +64,7 @@ bool getScienceNews(String& outReport) {
   filter["results"][0]["url"] = true;
   StaticJsonDocument<2048> doc;
   DeserializationError err = deserializeJson(doc, httpsClient, DeserializationOption::Filter(filter));
-  httpsClient.stop();
+  httpsRelease();
   if (err) {
     outReport = "Science news JSON parse error.";
     return false;
@@ -108,7 +108,7 @@ bool getPhysicsPapers(String& outReport) {
     if (!httpsClient.connected() && !httpsClient.available()) break;
     delay(10);
   }
-  httpsClient.stop();
+  httpsRelease();
   if (xml.length() < 50) {
     outReport = "arXiv response empty.";
     return false;
@@ -161,7 +161,7 @@ bool getApod(String& outReport) {
   filter["url"] = true;
   StaticJsonDocument<4096> doc;
   DeserializationError err = deserializeJson(doc, httpsClient, DeserializationOption::Filter(filter));
-  httpsClient.stop();
+  httpsRelease();
   if (err) {
     outReport = "NASA APOD JSON parse error.";
     return false;

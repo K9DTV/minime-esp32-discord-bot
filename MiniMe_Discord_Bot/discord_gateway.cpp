@@ -32,6 +32,8 @@ static String gwLastDropKind;
 static bool gwLoggedConnectDuringDrop = false;
 static unsigned long gwDropStartedMillis = 0;
 static bool gwFastIdentifyPending = false; // DISCONNECTED must not climb back to 5s after OP7/OP9
+static bool hbAckPending = false;
+static unsigned long hbSentMillis = 0;
 
 static String gwStamp() {
   return String(millis());
@@ -194,15 +196,9 @@ static void bindGatewayHost(const char* host) {
 
 void connectGateway() {
   resumeGatewayHost = "";
+  // One beginSSL for the life of the bot. After drops, only setReconnectInterval +
+  // disconnect(); do not beginSSL again (fights the library reconnect timer).
   bindGatewayHost("gateway.discord.gg");
-}
-
-static void bindGatewayForNextConnect(bool preferResume) {
-  if (preferResume && resumeGatewayHost.length() > 0) {
-    bindGatewayHost(resumeGatewayHost.c_str());
-  } else {
-    bindGatewayHost("gateway.discord.gg");
-  }
 }
 
 void gwSendJson(JsonDocument& doc) {
@@ -323,6 +319,8 @@ void sendHeartbeat() {
     doc["d"] = lastSeq;
   }
   gwSendJson(doc);
+  hbAckPending = true;
+  hbSentMillis = millis();
 }
 
 void pumpGateway() {
@@ -336,6 +334,15 @@ void pumpGateway() {
   // Heartbeat after Hello (Discord), not only after READY.
   if (heartbeatIntervalMs > 0 && gatewayConnected && gotHello) {
     unsigned long now = millis();
+    // Missed OP11 before next HB window -> zombied socket; drop and let library reconnect.
+    if (hbAckPending &&
+        (now - hbSentMillis >= (unsigned long)heartbeatIntervalMs)) {
+      gwLogAppend("HB_ACK_TIMEOUT");
+      gwArmFastIdentify("hb_ack");
+      hbAckPending = false;
+      gatewayWS.disconnect();
+      return;
+    }
     if (now - lastHeartbeatMillis >= (unsigned long)heartbeatIntervalMs) {
       lastHeartbeatMillis = now;
       sendHeartbeat();
@@ -351,6 +358,7 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
       gotHello         = false;
       botDiscordStatus = 0;
       heartbeatIntervalMs = 0;
+      hbAckPending = false;
 
       bool wifiUp = (WiFi.status() == WL_CONNECTED);
       String kind = wifiUp ? "WS_DISCONNECTED_WIFI_UP" : "WS_DISCONNECTED_WIFI_DOWN";
@@ -376,6 +384,7 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
       gwLoggedConnectDuringDrop = false;
 
       // Never resume (never worked here). Keep fast IDENTIFY interval if already armed.
+      // Do not beginSSL again — WebSocketsClient reconnect uses the original host.
       if (gwFastIdentifyPending) {
         gwSetReconnectIntervalMs(GW_RECONNECT_FAST_MS);
       } else if (wifiUp) {
@@ -384,7 +393,6 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
         gwAbandonResume("wifi_down");
         gwSetReconnectBackoff(false);
       }
-      bindGatewayForNextConnect(false);
       ensureWifiForGateway();
       showTransient("Gateway", "Disconnected");
       break;
@@ -452,23 +460,28 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
         lastSeq = (*gwDoc)["s"].as<int>();
       }
 
-      // Hello: start HB, then Identify only (resume never succeeds on this board)
+      // Hello: start HB (jittered first), then Identify only (resume never succeeds here)
       if (op == 10) {
         heartbeatIntervalMs = (*gwDoc)["d"]["heartbeat_interval"] | 0;
-        lastHeartbeatMillis = millis();
+        hbAckPending = false;
+        if (heartbeatIntervalMs > 0) {
+          unsigned long jitter = (unsigned long)(esp_random() % (uint32_t)heartbeatIntervalMs);
+          lastHeartbeatMillis = millis() - ((unsigned long)heartbeatIntervalMs - jitter);
+        } else {
+          lastHeartbeatMillis = millis();
+        }
         gotHello = true;
         gwLogAppend(String("OP10_HELLO hb_ms=") + String(heartbeatIntervalMs));
         sendIdentify();
         return;
       }
 
-      // Reconnect: drop session and IDENTIFY on main gateway (skip resume)
+      // Reconnect: drop session; library reconnects to same BIND_HOST (no second beginSSL)
       if (op == 7) {
         gwNoteDrop("OP7_RECONNECT", "OP7_RECONNECT");
         showTransient("Gateway", "Op7 reconnect");
         gwArmFastIdentify("op7");
         gatewayWS.disconnect();
-        bindGatewayForNextConnect(false);
         return;
       }
 
@@ -484,11 +497,13 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
         showTransient("Gateway", "Op9 session");
         gwArmFastIdentify("op9");
         gatewayWS.disconnect();
-        bindGatewayForNextConnect(false);
         return;
       }
 
-      if (op == 11) return; // Heartbeat ACK
+      if (op == 11) {
+        hbAckPending = false;
+        return;
+      }
 
       if (op == 0) {
         const char* t = (*gwDoc)["t"];

@@ -55,8 +55,7 @@ bool sendDiscordMessage(const String& channelId, const String& content, bool sup
   doc["tts"] = false;
   if (suppressEmbeds) doc["flags"] = 4; // SUPPRESS_EMBEDS: link stays a URL, no GitHub card
   if (post.length() > 0 && doc["content"].isNull()) {
-    httpsClient.stop();
-    httpsInUse = false;
+    httpsRelease();
     return false;
   }
 
@@ -76,12 +75,10 @@ bool sendDiscordMessage(const String& channelId, const String& content, bool sup
   bool chunked = false;
   int contentLength = -1;
   if (!httpsAwaitHeaders(deadline, false, statusLine, chunked, contentLength)) {
-    httpsClient.stop();
-    httpsInUse = false;
+    httpsRelease();
     return false;
   }
-  httpsClient.stop();
-  httpsInUse = false;
+  httpsRelease();
   int code = 0;
   int sp = statusLine.indexOf(' ');
   if (sp >= 0) code = statusLine.substring(sp + 1).toInt();
@@ -111,10 +108,20 @@ bool httpsConnect(const char* host, uint32_t timeoutMs) {
   return httpsClient.connect(host, 443);
 }
 
-// Returns 0=ok, 1=connect failed, 2=header timeout.
+void httpsRelease() {
+  httpsClient.stop();
+  httpsInUse = false;
+}
+
+// Returns 0=ok (httpsInUse held until httpsRelease), 1=busy/connect failed, 2=header timeout.
 uint8_t httpsGetOpen(const char* host, const String& path, unsigned long headerTimeoutMs,
                      const char* userAgent, const char* extraHeaders) {
-  if (!httpsConnect(host)) return 1;
+  if (httpsInUse) return 1;
+  httpsInUse = true;
+  if (!httpsConnect(host)) {
+    httpsInUse = false;
+    return 1;
+  }
   String req = String("GET ") + path + " HTTP/1.1\r\n"
                "Host: " + host + "\r\n"
                "User-Agent: " + userAgent + "\r\n";
@@ -122,7 +129,7 @@ uint8_t httpsGetOpen(const char* host, const String& path, unsigned long headerT
   req += "Connection: close\r\n\r\n";
   httpsClient.print(req);
   if (!skipHttpHeaders(httpsClient, headerTimeoutMs)) {
-    httpsClient.stop();
+    httpsRelease();
     return 2;
   }
   return 0;
@@ -244,7 +251,13 @@ bool discordIdLooksValid(const String& id) {
 
 bool discordRestGet(const String& path, String& outBody, String& outStatus) {
   outBody = "";
+  if (httpsInUse) {
+    outStatus = "busy";
+    return false;
+  }
+  httpsInUse = true;
   if (!httpsConnect("discord.com", 15000)) {
+    httpsInUse = false;
     outStatus = "connect failed";
     return false;
   }
@@ -262,11 +275,12 @@ bool discordRestGet(const String& path, String& outBody, String& outStatus) {
   bool chunked = false;
   int contentLength = -1;
   if (!httpsAwaitHeaders(deadline, false, outStatus, chunked, contentLength)) {
+    httpsRelease();
     outStatus = "timeout";
     return false;
   }
   bool ok = readHttpBodyAfterHeaders(httpsClient, chunked, contentLength, outBody, deadline);
-  httpsClient.stop();
+  httpsRelease();
   return ok;
 }
 

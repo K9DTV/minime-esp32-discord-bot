@@ -82,6 +82,7 @@ bool webUiKeepsCpuActive();
 extern WiFiClientSecure httpsClient;
 extern bool httpsInUse;
 bool httpsConnect(const char* host, uint32_t timeoutMs = 15000);
+void httpsRelease(); // stop shared client + clear httpsInUse
 uint8_t httpsGetOpen(const char* host, const String& path, unsigned long headerTimeoutMs,
                      const char* userAgent = "MiniMeBot/1.0",
                      const char* extraHeaders = nullptr);
@@ -117,6 +118,12 @@ void noteDisplayActivity();
 void drawDashboard();
 void updateDisplay();
 void showTransient(const String& line1, const String& line2 = "", const String& line3 = "", unsigned long durationMs = 3000);
+// OLED bar fills (single source for OLED + web API percents)
+enum { DASH_SIG_HEAP_BAR_MAX = 79, DASH_SRV_BAR_MAX = 101 };
+int dashSigBarW(long rssi);
+int dashHeapBarW(uint32_t memFree, uint32_t memTotal);
+int dashSrvBarW(int servoDeg);
+int dashBarPct(int fill, int maxFill);
 
 // ====== TOUCH ======
 extern unsigned long lastTouchWakeMillis;

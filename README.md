@@ -99,15 +99,15 @@ Everything below runs on one **ESP32-S3**. Discord stays in the cloud; MiniMe ta
 
 *Same flowchart as the project page: tight Cloud and board boxes, WeAct under OLED in line with http board-ip.*
 
-- **Gateway** — live link for chat commands, presence, Online/Idle, heartbeats (must not stall during long HTTPS).
-- **REST** — bot posts replies and loads member names; also pulls science/weather/AI over HTTPS/HTTP (`setInsecure` for Discord/API outbound).
-- **OLED** — always the status board; sleep blanks the panel only (Wi-Fi and Gateway stay up).
-- **LAN web UI** — same board status in a browser at `http://<board-ip>/` (Display, SysInfo, LOG, Serial); light/dark theme and Display/Log layout chips; refreshes about once a second; does not replace OLED. The **LOG** panel is capped at **20 KB**; if the next line would go over, LOG is cleared (avoids unbounded growth that could look like a hang or memory bug). **Serial** stays a fixed 12-line ring.
+- **Gateway** — live link for chat commands, presence, Online/Idle, heartbeats (must not stall during long HTTPS). Heartbeats start after Hello (jittered first send); a missing OP11 ACK before the next interval forces disconnect (`HB_ACK_TIMEOUT`). Resume is skipped; one `beginSSL` at boot, then library reconnect only (no second bind on drop / OP7 / OP9).
+- **REST** — bot posts replies and loads member names; also pulls science/weather/AI over HTTPS/HTTP (`setInsecure` for Discord/API outbound). One shared `WiFiClientSecure`; `httpsInUse` is claimed in the transport (`sendDiscordMessage`, `discordRestGet`, `httpsGetOpen` / `httpsRelease`) so overlapping HTTPS cannot `stop()` each other.
+- **OLED** — always the status board; sleep blanks the panel only (Wi-Fi and Gateway stay up). Sig / Heap / Srv bar fills are computed once in display helpers; the LAN API exposes the same fills as percents (JS only paints width).
+- **LAN web UI** — same board status in a browser at `http://<board-ip>/` (Display, SysInfo, LOG, Serial); light/dark theme and Display/Log layout chips; refreshes about once a second; does not replace OLED. **LOG** is a **200**-line ring with an accurate byte counter; if the next line would push past **20 KB**, LOG is wiped then that line is kept. **Serial** stays a fixed **12**-line ring. **MmLog** feeds the web LOG/Serial panels only (no USB Serial / UART0 traffic).
 - **Touch** — wakes the OLED only; does not change Discord status or fire GPIO commands.
 
 ### Why this is hard (on one MCU)
 
-- Discord Gateway heartbeats must keep running while long HTTPS calls (`!ask`, weather, NASA) use the same TLS client.
+- Discord Gateway heartbeats must keep running while long HTTPS calls (`!ask`, weather, NASA) use the same TLS client (`httpsInUse` + Gateway deferral while DeepSeek holds it).
 - Large Gateway JSON lives in **PSRAM**; small Wi-Fi/TLS buffers must **not** — wrong placement crashes this board.
 - OLED can dim and power-save while Wi-Fi and the Gateway stay up (panel sleep ≠ chip sleep).
 - Capacitive touch trip point tracks **USB VBUS** so port sag does not false-trigger or go dead.
@@ -130,7 +130,7 @@ Font is **5x7** with 1px padding (**8px** per row). U8g2 `drawStr(x, y)` uses **
 |---|---|---|
 | 0 | 7 | `MiniMe`, `GW:Good` / `GW:Bad`, right-justified `HH:MM:SS` |
 | 2 | 15 | `Bot:Online` / `Bot:Idle  ` (left, 10 chars); `Www Mmm dd YYYY` (right, 15 chars, space-padded day, fixed slot) |
-| 3 | 23 | `Up:xd xh xm T:xxxF/xxxC` (spaces between d/h/m); sensor fail: `T:--Error--` |
+| 3 | 23 | `Up:xd xh xm xs T:xxxF/xxxC` (spaces between d/h/m/s); sensor fail: `T:--Error--` |
 | 4 | 31 | `Sig:` Wi-Fi RSSI bar |
 | 5 | 39 | `Heap:` free memory bar (internal SRAM + 8MB PSRAM) |
 | 6 | 47 | `Srv:` servo position bar, **0-90°** (boot commands **45°**, half fill) |
@@ -377,7 +377,7 @@ USB port voltage moves the raw touch numbers. MiniMe reads VBUS through a **divi
 - At boot, **`setupTouch()`** runs **after Wi-Fi and I2C**. It samples USB VBUS, then fills a **16-sample rolling average** of voltage-compensated idle touch readings (`touchIdleAvg`).
 - Trip is always **`touchIdleAvg + TOUCH_THRESHOLD`** (default gap **2000**). Idle samples below trip keep updating the rolling window; a tap does not.
 - **`loop()`** calls **`pollTouchWake()`** (no touch interrupt). A rising edge, after a **300 ms** debounce, uses the same wake path as a Discord event (full contrast, 1-minute idle timer restarted).
-- Serial logging / touch debug is **removed** from the firmware (not just commented out).
+- Serial logging / touch debug to USB Serial is **off** (`MmLog` → web UI only).
 
 ### Tuning sensitivity
 
@@ -414,7 +414,7 @@ Menu names can vary slightly by esp32 package version:
 | Tools menu | Setting for MiniMe |
 |---|---|
 | **Board** | **ESP32S3 Dev Module** (not generic ESP32 Dev Module) |
-| **USB CDC On Boot** | **Enabled** (USB-C Serial) |
+| **USB CDC On Boot** | **Enabled** (port for upload / OTA; Monitor stays quiet — logs are on the LAN web UI) |
 | **USB Mode** | **Hardware CDC and JTAG** |
 | **Flash Size** | **16MB (128Mb)** |
 | **Flash Mode** | **QIO 80MHz** (typical; use what works on your board) |

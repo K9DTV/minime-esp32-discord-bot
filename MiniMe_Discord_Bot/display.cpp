@@ -25,6 +25,36 @@ void noteDisplayActivity() {
   u8g2.setContrast(DISPLAY_CONTRAST_FULL);
 }
 
+// Same fill math OLED draws; web API converts via dashBarPct.
+int dashSigBarW(long rssi) {
+  if (rssi >= -40) return DASH_SIG_HEAP_BAR_MAX;
+  if (rssi <= -100) return 0;
+  return (int)((rssi + 100) * DASH_SIG_HEAP_BAR_MAX / 60);
+}
+
+int dashHeapBarW(uint32_t memFree, uint32_t memTotal) {
+  if (memTotal == 0) return 0;
+  int w = (int)((memFree * (uint32_t)DASH_SIG_HEAP_BAR_MAX) / memTotal);
+  if (w < 0) w = 0;
+  if (w > DASH_SIG_HEAP_BAR_MAX) w = DASH_SIG_HEAP_BAR_MAX;
+  return w;
+}
+
+int dashSrvBarW(int servoDeg) {
+  int w = (servoDeg * DASH_SRV_BAR_MAX) / 90;
+  if (w < 0) w = 0;
+  if (w > DASH_SRV_BAR_MAX) w = DASH_SRV_BAR_MAX;
+  return w;
+}
+
+int dashBarPct(int fill, int maxFill) {
+  if (maxFill <= 0) return 0;
+  int p = (fill * 100) / maxFill;
+  if (p < 0) p = 0;
+  if (p > 100) p = 100;
+  return p;
+}
+
 // Frame at (25, baselineY-7) size 103x8; fill at (26, baselineY-6).
 void drawDashBar(const char* label, uint8_t baselineY, int fillW) {
   u8g2.drawStr(0, baselineY, label);
@@ -106,12 +136,12 @@ void drawDashboard() {
 
   unsigned long d = 0, h = 0, m = 0, s = 0;
   uptimeDhms(d, h, m, s);
-  char upTempBuf[36];
+  char upTempBuf[40];
   if (dashTempC > -998.0f) {
-    snprintf(upTempBuf, sizeof(upTempBuf), "Up:%lud%luh%lum%lus T:%3.0fF/%3.0fC",
+    snprintf(upTempBuf, sizeof(upTempBuf), "Up:%lud %luh %lum %lus T:%3.0fF/%3.0fC",
              d, h, m, s, dashTempF, dashTempC);
   } else {
-    snprintf(upTempBuf, sizeof(upTempBuf), "Up:%lud%luh%lum%lus T:--Error--", d, h, m, s);
+    snprintf(upTempBuf, sizeof(upTempBuf), "Up:%lud %luh %lum %lus T:--Error--", d, h, m, s);
   }
   u8g2.drawStr(0, 23, upTempBuf);
 
@@ -119,25 +149,9 @@ void drawDashboard() {
   uint32_t memFree = 0, memTotal = 0;
   boardMemTotals(memFree, memTotal);
 
-  int sigBarW = 0;
-  if (rssi >= -40) sigBarW = 79;
-  else if (rssi <= -100) sigBarW = 0;
-  else sigBarW = (int)((rssi + 100) * 79 / 60);
-  drawDashBar("Sig:", 31, sigBarW);
-
-  int heapBarW = 0;
-  if (memTotal > 0) {
-    heapBarW = (int)((memFree * 79UL) / memTotal);
-    if (heapBarW < 0) heapBarW = 0;
-    if (heapBarW > 79) heapBarW = 79;
-  }
-  drawDashBar("Heap:", 39, heapBarW);
-
-  const int srvInnerW = 101;
-  int srvBarW = (lastServoDeg * srvInnerW) / 90;
-  if (srvBarW < 0) srvBarW = 0;
-  if (srvBarW > srvInnerW) srvBarW = srvInnerW;
-  drawDashBar("Srv:", 47, srvBarW);
+  drawDashBar("Sig:", 31, dashSigBarW(rssi));
+  drawDashBar("Heap:", 39, dashHeapBarW(memFree, memTotal));
+  drawDashBar("Srv:", 47, dashSrvBarW(lastServoDeg));
 
   const int gapPx = 4;
   const int statusW = u8g2.getStrWidth("Idle");
@@ -164,10 +178,21 @@ void drawDashboard() {
   for (uint8_t row = 0; row < MAX_TRACKED_USERS; row++) {
     uint8_t y = 55 + (row * 8);
     char name[40];
-    strncpy(name, nameSrc[row], sizeof(name) - 1);
-    name[sizeof(name) - 1] = '\0';
-    while (strlen(name) > 1 && u8g2.getStrWidth(name) > longestNamePx) {
-      name[strlen(name) - 1] = '\0';
+    const char* src = nameSrc[row];
+    size_t n = 0;
+    int w = 0;
+    while (src[n] && n + 1 < sizeof(name)) {
+      char one[2] = { src[n], '\0' };
+      int gw = u8g2.getStrWidth(one);
+      if (w + gw > longestNamePx) break;
+      name[n] = src[n];
+      w += gw;
+      n++;
+    }
+    name[n] = '\0';
+    if (n == 0 && src[0]) {
+      name[0] = src[0];
+      name[1] = '\0';
     }
     u8g2.drawStr(0, y, name);
 

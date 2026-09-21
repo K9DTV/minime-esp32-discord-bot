@@ -11,10 +11,12 @@
 static WebServer webServer(WEB_UI_PORT);
 static bool webUiReady = false;
 
-static const uint8_t WEB_FULL_N = 200;           // room to approach 20KB before wipe
-static const uint8_t WEB_SERIAL_N = 12;  // fits Serial panel; oldest dropped
+static const unsigned WEB_FULL_N = 200;           // ring size; oldest dropped when full
+static const unsigned WEB_SERIAL_N = 12;  // fits Serial panel; oldest dropped
 static const uint8_t WEB_LOG_COLS = 96;
 static const size_t WEB_FULL_MAX_BYTES = 20480UL; // clear LOG if over this
+static_assert(WEB_FULL_N >= 1 && WEB_FULL_N <= 255, "WEB_FULL_N must fit uint8_t head/count");
+static_assert(WEB_SERIAL_N >= 1 && WEB_SERIAL_N <= 255, "WEB_SERIAL_N must fit uint8_t head/count");
 
 static char webFullLines[WEB_FULL_N][WEB_LOG_COLS + 1];
 static uint8_t webFullHead = 0;
@@ -48,8 +50,17 @@ static void webFullPush(const char* text) {
   if (!text) return;
   size_t add = 0;
   while (add < WEB_LOG_COLS && text[add]) add++;
-  // Over 20KB (or line cap): wipe LOG, then keep the new line.
-  if (webFullCount >= WEB_FULL_N || webFullBytes + add > WEB_FULL_MAX_BYTES) {
+
+  // Ring full: drop oldest at head and subtract its stored length.
+  if (webFullCount >= WEB_FULL_N) {
+    size_t drop = 0;
+    while (drop < WEB_LOG_COLS && webFullLines[webFullHead][drop]) drop++;
+    if (webFullBytes >= drop) webFullBytes -= drop;
+    else webFullBytes = 0;
+  }
+
+  // Over 20KB after eviction accounting: wipe LOG, then keep the new line.
+  if (webFullBytes + add > WEB_FULL_MAX_BYTES) {
     webFullClear();
   }
   ringPush(webFullLines, WEB_FULL_N, webFullHead, webFullCount, text);
@@ -132,14 +143,6 @@ static void appendRingJson(String& out, const char lines[][WEB_LOG_COLS + 1],
   }
 }
 
-static int barPct(int fill, int maxFill) {
-  if (maxFill <= 0) return 0;
-  int p = (fill * 100) / maxFill;
-  if (p < 0) p = 0;
-  if (p > 100) p = 100;
-  return p;
-}
-
 static void dashFields(String& timeStr, String& dateStr, String& upStr,
                        int& sigPct, int& heapPct, int& srvPct,
                        long& rssi, uint32_t& memFree, uint32_t& memTotal,
@@ -169,29 +172,15 @@ static void dashFields(String& timeStr, String& dateStr, String& upStr,
   snprintf(upBuf, sizeof(upBuf), "%lud %luh %lum %lus", days, hours, minutes, secs);
   upStr = upBuf;
 
+  // Percents from OLED bar fills (dashSigBarW / dashHeapBarW / dashSrvBarW).
   rssi = WiFi.RSSI();
-  int sigBarW = 0;
-  if (rssi >= -40) sigBarW = 79;
-  else if (rssi <= -100) sigBarW = 0;
-  else sigBarW = (int)((rssi + 100) * 79 / 60);
-  sigPct = barPct(sigBarW, 79);
+  sigPct = dashBarPct(dashSigBarW(rssi), DASH_SIG_HEAP_BAR_MAX);
 
   memFree = 0;
   memTotal = 0;
   boardMemTotals(memFree, memTotal);
-  int heapBarW = 0;
-  if (memTotal > 0) {
-    heapBarW = (int)((memFree * 79UL) / memTotal);
-    if (heapBarW < 0) heapBarW = 0;
-    if (heapBarW > 79) heapBarW = 79;
-  }
-  heapPct = barPct(heapBarW, 79);
-
-  const int srvInnerW = 101;
-  int srvBarW = (lastServoDeg * srvInnerW) / 90;
-  if (srvBarW < 0) srvBarW = 0;
-  if (srvBarW > srvInnerW) srvBarW = srvInnerW;
-  srvPct = barPct(srvBarW, srvInnerW);
+  heapPct = dashBarPct(dashHeapBarW(memFree, memTotal), DASH_SIG_HEAP_BAR_MAX);
+  srvPct = dashBarPct(dashSrvBarW(lastServoDeg), DASH_SRV_BAR_MAX);
 
   msg1 = "";
   msg2 = "";

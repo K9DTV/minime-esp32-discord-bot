@@ -12,7 +12,7 @@
   hardware.cpp                     -- servo, NeoPixel, DS18B20, GPIO
   discord_rest.cpp                 -- HTTPS REST, sendDiscordMessage, members
   discord_gateway.cpp              -- websocket, heartbeat, identify, events
-  serial_log.cpp                   -- Serial/USB CDC dual log (ESP32-S3)
+  serial_log.cpp                   -- MmLog -> web UI only (no USB Serial / UART0)
   ota.cpp                          -- Wi-Fi ArduinoOTA firmware update
   web_ui.cpp                       -- LAN page: logo + display + log + serial + light/dark
   k9dtv_logo_svg.h                 -- dark K9DTV logo for /logo.svg
