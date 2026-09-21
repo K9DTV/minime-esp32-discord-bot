@@ -228,7 +228,13 @@ bool askDeepSeek(const String& question, String& outReport) {
   user["content"] = q;
   String body;
   serializeJson(req, body);
+  if (httpsInUse) {
+    outReport = "DeepSeek is already answering. Try again in a moment.";
+    return false;
+  }
+  httpsInUse = true; // hold shared TLS for Gateway deferral + httpsGetOpen/discordRestGet
   if (!httpsConnect("api.deepseek.com", 25000)) {
+    httpsInUse = false;
     outReport = "DeepSeek connection failed.";
     return false;
   }
@@ -249,16 +255,17 @@ bool askDeepSeek(const String& question, String& outReport) {
   bool chunked = false;
   int contentLength = -1;
   if (!httpsAwaitHeaders(deadline, true, statusLine, chunked, contentLength)) {
+    httpsRelease();
     outReport = "DeepSeek timeout waiting for headers.";
     return false;
   }
   String respBody;
   if (!readHttpBodyAfterHeaders(httpsClient, chunked, contentLength, respBody, deadline)) {
-    httpsClient.stop();
+    httpsRelease();
     outReport = "DeepSeek empty response. " + statusLine;
     return false;
   }
-  httpsClient.stop();
+  httpsRelease();
   int jsonStart = respBody.indexOf('{');
   if (jsonStart < 0) {
     outReport = "DeepSeek: no JSON body. " + truncateText(statusLine, 80);
@@ -320,9 +327,7 @@ void runAskFromLoop() {
   askNeedPost = false;
   String channelId = askPendingChannelId;
   String report;
-  httpsInUse = true; // keep Gateway from starting other HTTPS during DeepSeek
   bool ok = askDeepSeek(askPendingQuestion, report);
-  httpsInUse = false;
   askPendingQuestion = "";
   askPendingChannelId = "";
   if (!sendDiscordMessage(channelId, report)) {
@@ -428,7 +433,7 @@ void handleCommand(const String& content, const String& authorId, const String& 
       "• `!servo <0-90>` — Moves the servo motor to a specific angle.\n"
       "• `!set1 on` / `!set1 off` — Controls digital output pin 1.\n"
       "• `!set2 on` / `!set2 off` — Controls digital output pin 2.\n"
-      "• `!clear` — Stops set1/set2 flash and forces both outputs off.";
+      "• `!clear` — Turns set1 and set2 off.";
     sendDiscordMessage(channelId, helpMsg);
     showTransient("Help", "Command Sent");
     return;
@@ -585,8 +590,8 @@ void handleCommand(const String& content, const String& authorId, const String& 
         return;
       }
       bool on = (a == "on");
-      if (setN == 1) stopSet1Flash(on);
-      else stopSet2Flash(on);
+      if (setN == 1) setOutput(1, on);
+      else setOutput(2, on);
       String label = "set" + String(setN);
       String val = on ? "ON" : "OFF";
       sendDiscordMessage(channelId, label + " " + val);

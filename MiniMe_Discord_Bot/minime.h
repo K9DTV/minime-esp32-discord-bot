@@ -18,7 +18,7 @@
 #include "secrets.h"
 #include "minime_config.h"
 
-// Dual UART + USB CDC logging (ESP32-S3 USB-C often needs this)
+// MmLog -> web UI LOG/Serial only (no USB Serial / UART0).
 class MmLogClass : public Print {
  public:
   size_t write(uint8_t c) override;
@@ -152,12 +152,10 @@ bool readTemperature(float& tempC, float& tempF);
 void setLedRgb(uint8_t r, uint8_t g, uint8_t b);
 bool parseRgbTriplet(const String& args, uint8_t& r, uint8_t& g, uint8_t& b);
 bool isOwner(const String& authorId);
-void startSet1Flash();
-void startSet2Flash();
-void stopSet1Flash(bool leaveHigh);
-void stopSet2Flash(bool leaveHigh);
+void set1On();
+void set2On();
+void setOutput(uint8_t n, bool high); // n = 1 or 2
 void clearSetOutputs();
-void pumpSetFlash();
 
 // ====== USERS / PRESENCE ======
 extern TrackedUser trackedUsers[MAX_TRACKED_USERS];

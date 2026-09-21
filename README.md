@@ -32,7 +32,7 @@ AI helped with firmware edits, multi-file layout, and GitHub updates. I owned th
 
 Firmware on this repo is **shipped**. Hardware and optional extras still on the list:
 
-- **Mention / DM indicators on `set1` / `set2`** — DM to the bot flashes **set1** at 1 Hz (50%); @mention of `OWNER_ID_STR` flashes **set2** at 1 Hz (50%). Owner `!clear` turns both off.
+- **Mention / DM indicators on `set1` / `set2`** — DM to the bot turns **set1** on; @mention of `OWNER_ID_STR` turns **set2** on. Owner `!clear` (or `!set1`/`!set2` off) turns them off.
 - **PCB and desk case** — move off the breadboard onto a custom board and enclosure that can sit on my desk
 
 Done in **v0.5.00:** Wi-Fi ArduinoOTA (`!ota`), LAN light/dark + Display/Log layout.
@@ -64,7 +64,7 @@ Same list Discord shows for `!help`:
 - `!servo <0-90>` — servo angle (updates the `Srv:` bar)
 - `!set1 on` / `!set1 off` — digital output pin 1
 - `!set2 on` / `!set2 off` — digital output pin 2
-- `!clear` — stop set1/set2 flash and force both off
+- `!clear` — turn set1/set2 off
 
 ### Automatic posts
 

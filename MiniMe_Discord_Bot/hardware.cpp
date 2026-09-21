@@ -86,56 +86,21 @@ bool isOwner(const String& authorId) {
   return authorId == OWNER_ID_STR;
 }
 
-// 1 Hz flash, 50% duty: 500 ms on / 500 ms off per pin (independent).
-static bool set1FlashActive = false;
-static bool set2FlashActive = false;
-static bool set1FlashOn = false;
-static bool set2FlashOn = false;
-static unsigned long set1FlashLastMs = 0;
-static unsigned long set2FlashLastMs = 0;
-static const unsigned long SET_FLASH_HALF_MS = 500; // 1 Hz, 50% cycle
-
-void startSet1Flash() {
-  set1FlashActive = true;
-  set1FlashOn = true;
-  set1FlashLastMs = millis();
+// Alert / command outputs: steady HIGH or LOW (no blink).
+void set1On() {
   digitalWrite(PIN_SET1, HIGH);
 }
 
-void startSet2Flash() {
-  set2FlashActive = true;
-  set2FlashOn = true;
-  set2FlashLastMs = millis();
+void set2On() {
   digitalWrite(PIN_SET2, HIGH);
 }
 
-void stopSet1Flash(bool leaveHigh) {
-  set1FlashActive = false;
-  set1FlashOn = false;
-  digitalWrite(PIN_SET1, leaveHigh ? HIGH : LOW);
-}
-
-void stopSet2Flash(bool leaveHigh) {
-  set2FlashActive = false;
-  set2FlashOn = false;
-  digitalWrite(PIN_SET2, leaveHigh ? HIGH : LOW);
+void setOutput(uint8_t n, bool high) {
+  if (n == 1) digitalWrite(PIN_SET1, high ? HIGH : LOW);
+  else if (n == 2) digitalWrite(PIN_SET2, high ? HIGH : LOW);
 }
 
 void clearSetOutputs() {
-  stopSet1Flash(false);
-  stopSet2Flash(false);
-}
-
-void pumpSetFlash() {
-  unsigned long now = millis();
-  if (set1FlashActive && (now - set1FlashLastMs >= SET_FLASH_HALF_MS)) {
-    set1FlashLastMs = now;
-    set1FlashOn = !set1FlashOn;
-    digitalWrite(PIN_SET1, set1FlashOn ? HIGH : LOW);
-  }
-  if (set2FlashActive && (now - set2FlashLastMs >= SET_FLASH_HALF_MS)) {
-    set2FlashLastMs = now;
-    set2FlashOn = !set2FlashOn;
-    digitalWrite(PIN_SET2, set2FlashOn ? HIGH : LOW);
-  }
+  setOutput(1, false);
+  setOutput(2, false);
 }

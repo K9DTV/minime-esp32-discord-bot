@@ -100,7 +100,6 @@ void loop() {
     return;
   }
   pumpGateway();
-  pumpSetFlash();
   backgroundTasks();
   pollTouchWake();
   updateBotPresenceIdle();

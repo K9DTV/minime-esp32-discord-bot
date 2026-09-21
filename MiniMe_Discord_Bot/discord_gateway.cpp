@@ -268,8 +268,7 @@ void updateBotPresenceIdle() {
   sendBotPresence("idle", true);
 }
 
-// 80 MHz when OLED off and Discord Idle (identified). ESP32-S3 has no 100 MHz step.
-// Locked at 240 MHz (idle downclock correlated with full-chip resets).
+// CPU locked at 240 MHz (idle downclock correlated with full-chip resets).
 void applyCpuForIdleState() {
   uint32_t want = CPU_MHZ_ACTIVE;
   if (getCpuFrequencyMhz() == want) return;
@@ -565,9 +564,9 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
           String authorName = discordDisplayName(d["author"]);
           bool isDM = d["guild_id"].isNull();
 
-          // Owner alert outputs: DM to bot -> set1 @ 1 Hz; @owner mention -> set2 @ 1 Hz
+          // Owner alert outputs: DM to bot -> set1 ON; @owner mention -> set2 ON
           if (isDM) {
-            startSet1Flash();
+            set1On();
           } else {
             bool ownerMentioned = false;
             JsonArray mentions = d["mentions"].as<JsonArray>();
@@ -587,7 +586,7 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
                 ownerMentioned = true;
               }
             }
-            if (ownerMentioned) startSet2Flash();
+            if (ownerMentioned) set2On();
           }
 
           handleCommand(content, authorId, authorName, channelId, isDM);
