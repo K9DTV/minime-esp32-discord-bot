@@ -82,6 +82,7 @@ bool webUiKeepsCpuActive();
 extern WiFiClientSecure httpsClient;
 extern bool httpsInUse;
 bool httpsConnect(const char* host, uint32_t timeoutMs = 15000);
+bool httpsAcquire(const char* host, uint32_t timeoutMs = 15000); // claim + connect, or false if busy/fail
 void httpsRelease(); // stop shared client + clear httpsInUse
 uint8_t httpsGetOpen(const char* host, const String& path, unsigned long headerTimeoutMs,
                      const char* userAgent = "MiniMeBot/1.0",

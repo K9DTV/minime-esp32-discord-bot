@@ -130,7 +130,7 @@ Font is **5x7** with 1px padding (**8px** per row). U8g2 `drawStr(x, y)` uses **
 |---|---|---|
 | 0 | 7 | `MiniMe`, `GW:Good` / `GW:Bad`, right-justified `HH:MM:SS` |
 | 2 | 15 | `Bot:Online` / `Bot:Idle  ` (left, 10 chars); `Www Mmm dd YYYY` (right, 15 chars, space-padded day, fixed slot) |
-| 3 | 23 | `Up:xd xh xm xs T:xxxF/xxxC` (spaces between d/h/m/s); sensor fail: `T:--Error--` |
+| 3 | 23 | `Up:ddd hhh mmm T:...` (days 3-wide, hours/mins 2-wide, spaces; no seconds); sensor fail: `T:--Error--` |
 | 4 | 31 | `Sig:` Wi-Fi RSSI bar |
 | 5 | 39 | `Heap:` free memory bar (internal SRAM + 8MB PSRAM) |
 | 6 | 47 | `Srv:` servo position bar, **0-90°** (boot commands **45°**, half fill) |

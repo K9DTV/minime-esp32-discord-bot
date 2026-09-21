@@ -228,14 +228,10 @@ bool askDeepSeek(const String& question, String& outReport) {
   user["content"] = q;
   String body;
   serializeJson(req, body);
-  if (httpsInUse) {
-    outReport = "DeepSeek is already answering. Try again in a moment.";
-    return false;
-  }
-  httpsInUse = true; // hold shared TLS for Gateway deferral + httpsGetOpen/discordRestGet
-  if (!httpsConnect("api.deepseek.com", 25000)) {
-    httpsInUse = false;
-    outReport = "DeepSeek connection failed.";
+  if (!httpsAcquire("api.deepseek.com", 25000)) {
+    outReport = httpsInUse
+      ? "DeepSeek is already answering. Try again in a moment."
+      : "DeepSeek connection failed.";
     return false;
   }
   String request =

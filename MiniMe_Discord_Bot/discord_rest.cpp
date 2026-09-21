@@ -41,14 +41,9 @@ String getSystemInfo() {
 }
 
 bool sendDiscordMessage(const String& channelId, const String& content, bool suppressEmbeds) {
-  if (httpsInUse) return false;
   String post = content;
   if (post.length() > DISCORD_CONTENT_MAX) post = post.substring(0, DISCORD_CONTENT_MAX - 3) + "...";
-  httpsInUse = true;
-  if (!httpsConnect("discord.com")) {
-    httpsInUse = false;
-    return false;
-  }
+  if (!httpsAcquire("discord.com")) return false;
   String url = "/api/v10/channels/" + channelId + "/messages";
   StaticJsonDocument<4096> doc;
   doc["content"] = post;
@@ -113,15 +108,20 @@ void httpsRelease() {
   httpsInUse = false;
 }
 
+bool httpsAcquire(const char* host, uint32_t timeoutMs) {
+  if (httpsInUse) return false;
+  httpsInUse = true;
+  if (!httpsConnect(host, timeoutMs)) {
+    httpsRelease();
+    return false;
+  }
+  return true;
+}
+
 // Returns 0=ok (httpsInUse held until httpsRelease), 1=busy/connect failed, 2=header timeout.
 uint8_t httpsGetOpen(const char* host, const String& path, unsigned long headerTimeoutMs,
                      const char* userAgent, const char* extraHeaders) {
-  if (httpsInUse) return 1;
-  httpsInUse = true;
-  if (!httpsConnect(host)) {
-    httpsInUse = false;
-    return 1;
-  }
+  if (!httpsAcquire(host)) return 1;
   String req = String("GET ") + path + " HTTP/1.1\r\n"
                "Host: " + host + "\r\n"
                "User-Agent: " + userAgent + "\r\n";
@@ -251,14 +251,8 @@ bool discordIdLooksValid(const String& id) {
 
 bool discordRestGet(const String& path, String& outBody, String& outStatus) {
   outBody = "";
-  if (httpsInUse) {
-    outStatus = "busy";
-    return false;
-  }
-  httpsInUse = true;
-  if (!httpsConnect("discord.com", 15000)) {
-    httpsInUse = false;
-    outStatus = "connect failed";
+  if (!httpsAcquire("discord.com", 15000)) {
+    outStatus = httpsInUse ? "busy" : "connect failed";
     return false;
   }
   String request =
