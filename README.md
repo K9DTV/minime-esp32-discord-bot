@@ -11,9 +11,9 @@ MiniMe is firmware for a **WeAct Studio ESP32-S3-N16R8** that runs a Discord bot
 
 *Breadboard prototype: WeAct Studio ESP32-S3-N16R8, 128x128 SSD1327 (GND / VCC / SCL / SDA), two discrete LEDs, GPIO 4 touch wake pad (yellow wire loop), and DS18B20 on GPIO 10. Sensor fail on the OLED is `T:--Error--`.*
 
-**Status:** shipped breadboard firmware · **v0.5.3** · green CI compile · PCB / desk case still planned (see Ongoing project).
+**Status:** shipped breadboard firmware · **v0.5.3** · green CI compile · **done** (no further firmware work planned here).
 
-I find this working well and have not found any bugs. Unless I find something to add to its function, or a bug, this is now shipped code.
+I find this working well and have not found any bugs. This OLED MiniMe is **closed out**. Active development continues on **[MiniMe II](https://github.com/K9DTV/minime-ii-esp32-discord-bot)** (Guition color LCD).
 
 After Wi-Fi connects, MiniMe serves a LAN web dashboard at `http://<board-ip>/` (Display, SysInfo, LOG, Serial). Theme matches k9dtv.com (light/dark, local assets). IC chips: theme (sun/moon) and **Display** / **Log** layout (four panels vs Display + SysInfo only).
 
@@ -29,14 +29,16 @@ Current version: see `VERSION` and `CHANGELOG.md`. License: see `LICENSE` (MIT f
 This is my first big modern MCU / Discord bot project on ESP32.  
 AI helped with firmware edits, multi-file layout, and GitHub updates. I owned the architecture, wiring, Discord Gateway/OLED design, commands, power/idle trade-offs, and what shipped on the board.
 
-## Ongoing project
+## Project status
 
-Firmware on this repo is **shipped**. Hardware and optional extras still on the list:
+Firmware on this repo is **shipped and closed**. New work is on **[MiniMe II](https://github.com/K9DTV/minime-ii-esp32-discord-bot)** (Guition JC3248W535EN).
 
-- **Mention / DM indicators on `set1` / `set2`** — DM to the bot turns **set1** on; @mention of `OWNER_ID_STR` turns **set2** on. Owner `!clear` (or `!set1`/`!set2` off) turns them off.
-- **PCB and desk case** — move off the breadboard onto a custom board and enclosure that can sit on my desk
+Optional leftovers that were never required for this OLED ship (not blocking “done”):
 
-Done in **v0.5.00:** Wi-Fi ArduinoOTA (`!ota`), LAN light/dark + Display/Log layout.
+- **Mention / DM indicators on `set1` / `set2`** — already supported in firmware if you use those GPIOs
+- **PCB / desk case** — hardware packaging for the WeAct breadboard build
+
+Done in **v0.5.00+:** Wi-Fi ArduinoOTA (`!ota`), LAN light/dark + Display/Log layout, CA TLS, etc. through **v0.5.3**.
 
 ---
 
