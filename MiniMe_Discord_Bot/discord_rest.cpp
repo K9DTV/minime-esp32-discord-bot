@@ -100,15 +100,17 @@ bool httpsConnect(const char* host, uint32_t timeoutMs) {
   httpsClient.stop();
   // Verify server certs with ESP-IDF CA bundle. Never setInsecure -- BOT_TOKEN /
   // DeepSeek / NASA keys must not ride a MITM-able TLS session.
-  // Bundle symbol name varies slightly by Arduino-ESP32 / IDF release.
+  // Arduino-ESP32 3.3.x+: setCACertBundle(ptr, size). Bundle symbol names vary by release.
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
   extern const uint8_t rootca_crt_bundle_start[] asm("_binary_data_crt_x509_crt_bundle_bin_start");
-  httpsClient.setCACertBundle(rootca_crt_bundle_start);
+  extern const uint8_t rootca_crt_bundle_end[] asm("_binary_data_crt_x509_crt_bundle_bin_end");
+  httpsClient.setCACertBundle(rootca_crt_bundle_start,
+                              (size_t)(rootca_crt_bundle_end - rootca_crt_bundle_start));
 #else
   extern const uint8_t rootca_crt_bundle_start[] asm("_binary_x509_crt_bundle_start");
   extern const uint8_t rootca_crt_bundle_end[] asm("_binary_x509_crt_bundle_end");
   httpsClient.setCACertBundle(rootca_crt_bundle_start,
-                              rootca_crt_bundle_end - rootca_crt_bundle_start);
+                              (size_t)(rootca_crt_bundle_end - rootca_crt_bundle_start));
 #endif
   httpsClient.setTimeout(timeoutMs);
   httpsClient.setHandshakeTimeout((timeoutMs + 999UL) / 1000UL);
