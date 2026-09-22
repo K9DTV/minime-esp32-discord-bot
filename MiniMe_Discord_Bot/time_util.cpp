@@ -44,3 +44,23 @@ void updateLocalTime() {
   unsigned long utc = timeClient.getEpochTime();
   timeClient.setTimeOffset(isPacificDaylightTime(utc) ? PDT_OFFSET_SEC : PST_OFFSET_SEC);
 }
+
+void formatLocalDateStr(char* buf, size_t bufLen) {
+  if (!buf || bufLen == 0) return;
+  static const char* const DOW_NAME[] = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
+  static const char* const MON_NAME[] = {"Jan","Feb","Mar","Apr","May","Jun",
+                                         "Jul","Aug","Sep","Oct","Nov","Dec"};
+  time_t localEpoch = (time_t)timeClient.getEpochTime();
+  struct tm tmLocal;
+  gmtime_r(&localEpoch, &tmLocal);
+  snprintf(buf, bufLen, "%s %s %2d %04d",
+           DOW_NAME[tmLocal.tm_wday], MON_NAME[tmLocal.tm_mon],
+           tmLocal.tm_mday, tmLocal.tm_year + 1900);
+}
+
+void formatUptimeStr(char* buf, size_t bufLen) {
+  if (!buf || bufLen == 0) return;
+  unsigned long d = 0, h = 0, m = 0, s = 0;
+  uptimeDhms(d, h, m, s);
+  snprintf(buf, bufLen, "%lud %luh %lum %lus", d, h, m, s);
+}

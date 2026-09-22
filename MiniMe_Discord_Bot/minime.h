@@ -1,6 +1,7 @@
 #ifndef MINIME_H
 #define MINIME_H
 
+#include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <WebSocketsClient.h>
@@ -14,6 +15,7 @@
 #include <NTPClient.h>
 #include <time.h>
 #include <string.h>
+#include <stddef.h>
 
 #include "secrets.h"
 #include "minime_config.h"
@@ -42,6 +44,8 @@ struct TrackedUser {
 extern WiFiUDP ntpUDP;
 extern NTPClient timeClient;
 void updateLocalTime();
+void formatLocalDateStr(char* buf, size_t bufLen);
+void formatUptimeStr(char* buf, size_t bufLen);
 
 // ====== DISCORD GATEWAY ======
 extern WebSocketsClient gatewayWS;
@@ -56,7 +60,6 @@ extern uint8_t botDiscordStatus;
 void noteBotActivity();
 void updateBotPresenceIdle();
 void sendBotPresence(const char* status, bool afk);
-void applyCpuForIdleState();
 void gwLogEvent(const String& ev);
 void sendIdentify();
 void sendResume();
@@ -160,7 +163,7 @@ void clearSetOutputs();
 
 // ====== USERS / PRESENCE ======
 extern TrackedUser trackedUsers[MAX_TRACKED_USERS];
-extern String cachedGuildIds[3];
+extern String cachedGuildIds[MAX_CACHED_GUILDS];
 extern uint8_t cachedGuildCount;
 extern unsigned long usesWindowStartMillis;
 const char* statusToWord(uint8_t s);
@@ -176,7 +179,6 @@ void rememberGuildId(const String& gid);
 
 // ====== COMMANDS / BACKGROUND ======
 extern unsigned long lastSysInfoMillis;
-extern int lastSentHour;
 extern bool askNeedPost;
 extern String askPendingQuestion;
 extern String askPendingChannelId;

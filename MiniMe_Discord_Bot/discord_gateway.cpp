@@ -1,4 +1,5 @@
 #include "minime.h"
+#include "esp_wifi.h"
 
 WebSocketsClient gatewayWS;
 DynamicJsonDocument* gwDoc = nullptr;
@@ -168,6 +169,8 @@ static void ensureWifiForGateway() {
   gwLastWifiKickMillis = now;
   gwLogAppend("WIFI_RETRY begin()");
   WiFi.disconnect();
+  WiFi.setSleep(false);
+  esp_wifi_set_ps(WIFI_PS_NONE);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 }
 
@@ -268,13 +271,6 @@ void updateBotPresenceIdle() {
   sendBotPresence("idle", true);
 }
 
-// CPU locked at 240 MHz (idle downclock correlated with full-chip resets).
-void applyCpuForIdleState() {
-  uint32_t want = CPU_MHZ_ACTIVE;
-  if (getCpuFrequencyMhz() == want) return;
-  setCpuFrequencyMhz(want);
-}
-
 void sendIdentify() {
   StaticJsonDocument<1024> doc;
   doc["op"] = 2;
@@ -333,16 +329,21 @@ void pumpGateway() {
   // Heartbeat after Hello (Discord), not only after READY.
   if (heartbeatIntervalMs > 0 && gatewayConnected && gotHello) {
     unsigned long now = millis();
-    // Missed OP11 before next HB window -> zombied socket; drop and let library reconnect.
-    if (hbAckPending &&
-        (now - hbSentMillis >= (unsigned long)heartbeatIntervalMs)) {
-      gwLogAppend("HB_ACK_TIMEOUT");
-      gwArmFastIdentify("hb_ack");
-      hbAckPending = false;
-      gatewayWS.disconnect();
-      return;
-    }
-    if (now - lastHeartbeatMillis >= (unsigned long)heartbeatIntervalMs) {
+    unsigned long hbInterval = (unsigned long)heartbeatIntervalMs;
+    unsigned long hbAckDeadline = hbInterval + GW_HB_ACK_GRACE_MS;
+
+    // Missed OP11 past Discord interval + grace -> zombied socket; drop and reconnect.
+    // Grace avoids false kills when OP11 is late on ESP32 TLS / Wi-Fi jitter.
+    // Do not send another HB while ack is still pending.
+    if (hbAckPending) {
+      if (now - hbSentMillis >= hbAckDeadline) {
+        gwLogAppend(String("HB_ACK_TIMEOUT after_ms=") + String(now - hbSentMillis));
+        gwArmFastIdentify("hb_ack");
+        hbAckPending = false;
+        gatewayWS.disconnect();
+        return;
+      }
+    } else if (now - lastHeartbeatMillis >= hbInterval) {
       lastHeartbeatMillis = now;
       sendHeartbeat();
     }

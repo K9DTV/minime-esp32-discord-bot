@@ -10,7 +10,7 @@ MiniMe is firmware for a **WeAct Studio ESP32-S3-N16R8** that runs a Discord bot
 
 *Breadboard prototype: WeAct Studio ESP32-S3-N16R8, 128x128 SSD1327 (GND / VCC / SCL / SDA), two discrete LEDs, GPIO 4 touch wake pad (yellow wire loop), and DS18B20 on GPIO 10. Sensor fail on the OLED is `T:--Error--`.*
 
-**Status:** shipped breadboard firmware · **v0.5.1** · green CI compile · PCB / desk case still planned (see Ongoing project).
+**Status:** shipped breadboard firmware · **v0.5.2** · green CI compile · PCB / desk case still planned (see Ongoing project).
 
 I find this working well and have not found any bugs. Unless I find something to add to its function, or a bug, this is now shipped code.
 
@@ -21,7 +21,7 @@ After Wi-Fi connects, MiniMe serves a LAN web dashboard at `http://<board-ip>/` 
   <img src="docs/ESP32S3-Web-UI-Bright.png#gh-light-mode-only" alt="MiniMe LAN web UI (light)" width="640">
 </p>
 
-*LAN web UI (v0.5.1): light/dark + Display/Log layout chips; Sig / Heap / Srv bars share one left edge. Screenshot follows your GitHub theme (light/dark), same idea as k9dtv.com.*
+*LAN web UI (v0.5.2): light/dark + Display/Log layout chips; Sig / Heap / Srv bars share one left edge. Screenshot follows your GitHub theme (light/dark), same idea as k9dtv.com.*
 
 Current version: see `VERSION` and `CHANGELOG.md`. License: see `LICENSE` (MIT for original MiniMe files only).
 
@@ -86,9 +86,9 @@ MiniMe’s own Discord status (green Online / yellow Idle) in Discord:
 ### `!ask` / DeepSeek
 
 - Request `max_tokens`: **900**
-- JSON parse buffer: **12288** bytes
+- JSON parse buffer: **24576** bytes
 - Discord post cap: **2000** characters (Discord limit)
-- HTTPS on the ESP32 can take several seconds
+- HTTPS on the ESP32 can take several seconds (CA-verified TLS)
 - `!ask` is queued off the Discord Gateway thread; heartbeats keep running while DeepSeek waits
 
 ## How it works
@@ -99,10 +99,10 @@ Everything below runs on one **ESP32-S3**. Discord stays in the cloud; MiniMe ta
 
 *Same flowchart as the project page: tight Cloud and board boxes, WeAct under OLED in line with http board-ip.*
 
-- **Gateway** — live link for chat commands, presence, Online/Idle, heartbeats (must not stall during long HTTPS). Heartbeats start after Hello (jittered first send); a missing OP11 ACK before the next interval forces disconnect (`HB_ACK_TIMEOUT`). Resume is skipped; one `beginSSL` at boot, then library reconnect only (no second bind on drop / OP7 / OP9).
-- **REST** — bot posts replies and loads member names; also pulls science/weather/AI over HTTPS/HTTP (`setInsecure` for Discord/API outbound). One shared `WiFiClientSecure`; `httpsInUse` is claimed in the transport (`sendDiscordMessage`, `discordRestGet`, `httpsGetOpen` / `httpsRelease`) so overlapping HTTPS cannot `stop()` each other.
-- **OLED** — always the status board; sleep blanks the panel only (Wi-Fi and Gateway stay up). Sig / Heap / Srv bar fills are computed once in display helpers; the LAN API exposes the same fills as percents (JS only paints width).
-- **LAN web UI** — same board status in a browser at `http://<board-ip>/` (Display, SysInfo, LOG, Serial); light/dark theme and Display/Log layout chips; refreshes about once a second; does not replace OLED. **LOG** is a **200**-line ring with an accurate byte counter; if the next line would push past **20 KB**, LOG is wiped then that line is kept. **Serial** stays a fixed **12**-line ring. **MmLog** feeds the web LOG/Serial panels only (no USB Serial / UART0 traffic).
+- **Gateway** — live link for chat commands, presence, Online/Idle, heartbeats (must not stall during long HTTPS). Heartbeats start after Hello (jittered first send); a missing OP11 ACK past the Discord interval plus **15 s** grace forces disconnect (`HB_ACK_TIMEOUT`). Resume is skipped; one `beginSSL` at boot, then library reconnect only (no second bind on drop / OP7 / OP9).
+- **REST** — bot posts replies and loads member names; also pulls science/weather/AI over HTTPS/HTTP. Outbound TLS uses the ESP32 **CA cert bundle** (no `setInsecure`) so `BOT_TOKEN` and API keys are not exposed to MITM. One shared `WiFiClientSecure`; `httpsInUse` is claimed in the transport (`sendDiscordMessage`, `discordRestGet`, `httpsGetOpen` / `httpsRelease`) so overlapping HTTPS cannot `stop()` each other. Discord Gateway WebSocket TLS is still whatever the WebSockets library does (separate from REST).
+- **OLED** — always the status board; sleep blanks the panel only (Wi-Fi and Gateway stay up). Sig / Heap / Srv bar fills are computed once in display helpers; the LAN API exposes the same fills as percents (JS only paints width). Dashboard redraw every **4 s**.
+- **LAN web UI** — same board status in a browser at `http://<board-ip>/` (Display, SysInfo, LOG, Serial); light/dark theme and Display/Log layout chips; polls `/api/status` every **2 s** (CSS/JS in `web_assets.h`, status JSON via ArduinoJson); does not replace OLED. **LOG** is a **200**-line ring with an accurate byte counter; if the next line would push past **20 KB**, LOG is wiped then that line is kept. **Serial** stays a fixed **12**-line ring. **MmLog** feeds the web LOG/Serial panels only (no USB Serial / UART0 traffic — Serial is for upload/OTA, not the log file).
 - **Touch** — wakes the OLED only; does not change Discord status or fire GPIO commands.
 
 ### Why this is hard (on one MCU)
@@ -130,7 +130,7 @@ Font is **5x7** with 1px padding (**8px** per row). U8g2 `drawStr(x, y)` uses **
 |---|---|---|
 | 0 | 7 | `MiniMe`, `GW:Good` / `GW:Bad`, right-justified `HH:MM:SS` |
 | 2 | 15 | `Bot:Online` / `Bot:Idle  ` (left, 10 chars); `Www Mmm dd YYYY` (right, 15 chars, space-padded day, fixed slot) |
-| 3 | 23 | `Up:ddd hhh mmm T:...` (days 3-wide, hours/mins 2-wide, spaces; no seconds); sensor fail: `T:--Error--` |
+| 3 | 23 | `Up:xxd xxh xxm T:xxxF/xxxC` (no seconds on OLED; web keeps `d h m s`); sensor fail: `T:--Error--` |
 | 4 | 31 | `Sig:` Wi-Fi RSSI bar |
 | 5 | 39 | `Heap:` free memory bar (internal SRAM + 8MB PSRAM) |
 | 6 | 47 | `Srv:` servo position bar, **0-90°** (boot commands **45°**, half fill) |
@@ -152,12 +152,11 @@ Commands and gateway events **do not wipe** the dashboard. They write **rows 15 
 
 After **1 minute** with no real events, contrast **dims over 15 seconds**, then the panel turns **off** (`u8g2.setPowerSave(1)`). That is OLED power-save only. The microcontroller, Wi-Fi, and Discord Gateway keep running.
 
-These **do not** reset the timer: signal / heap / servo bars, clock, uptime/temp on row 3, and the 2-second dashboard refresh.
+These **do not** reset the timer: signal / heap / servo bars, clock, uptime/temp on row 3, and the 4-second dashboard refresh.
 
 These **wake** the panel and restart the 1-minute timer: **touch on the wake pad (GPIO 4)**, Discord commands, gateway connect/disconnect, `!display`, boot channel announce, and other status lines on rows 15-16. Presence updates for the eight user rows **do not** wake the panel.
 
-CPU stays locked at **240 MHz** (v0.5.1; no idle downclock when OLED is blank).
-
+CPU stays at the board default (**240 MHz**); idle downclock was removed after it correlated with full-chip resets. Discord presence still goes Idle after **5 minutes** quiet.
 </details>
 
 ---

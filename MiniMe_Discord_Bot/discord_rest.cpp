@@ -1,4 +1,5 @@
 #include "minime.h"
+#include "esp_crt_bundle.h"
 
 WiFiClientSecure httpsClient;
 bool httpsInUse = false;
@@ -97,7 +98,18 @@ bool skipHttpHeaders(Client& client, unsigned long timeoutMs) {
 
 bool httpsConnect(const char* host, uint32_t timeoutMs) {
   httpsClient.stop();
-  httpsClient.setInsecure(); // Discord outbound: encrypt only, no CA verify
+  // Verify server certs with ESP-IDF CA bundle. Never setInsecure -- BOT_TOKEN /
+  // DeepSeek / NASA keys must not ride a MITM-able TLS session.
+  // Bundle symbol name varies slightly by Arduino-ESP32 / IDF release.
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
+  extern const uint8_t rootca_crt_bundle_start[] asm("_binary_data_crt_x509_crt_bundle_bin_start");
+  httpsClient.setCACertBundle(rootca_crt_bundle_start);
+#else
+  extern const uint8_t rootca_crt_bundle_start[] asm("_binary_x509_crt_bundle_start");
+  extern const uint8_t rootca_crt_bundle_end[] asm("_binary_x509_crt_bundle_end");
+  httpsClient.setCACertBundle(rootca_crt_bundle_start,
+                              rootca_crt_bundle_end - rootca_crt_bundle_start);
+#endif
   httpsClient.setTimeout(timeoutMs);
   httpsClient.setHandshakeTimeout((timeoutMs + 999UL) / 1000UL);
   return httpsClient.connect(host, 443);

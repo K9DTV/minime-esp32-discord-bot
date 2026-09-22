@@ -112,21 +112,13 @@ void drawDashboard() {
   u8g2.drawStr(timeX, 7, t.c_str());
 
   {
-    static const char* const DOW_NAME[] = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
-    static const char* const MON_NAME[] = {"Jan","Feb","Mar","Apr","May","Jun",
-                                           "Jul","Aug","Sep","Oct","Nov","Dec"};
-    time_t localEpoch = (time_t)timeClient.getEpochTime();
-    struct tm tmLocal;
-    gmtime_r(&localEpoch, &tmLocal);
     char botBuf[12];
     snprintf(botBuf, sizeof(botBuf), "Bot:%-6s",
              (botDiscordStatus == 2) ? "Online" : "Idle");
     u8g2.drawStr(0, 15, botBuf);
 
     char dateBuf[20];
-    snprintf(dateBuf, sizeof(dateBuf), "%s %s %2d %04d",
-             DOW_NAME[tmLocal.tm_wday], MON_NAME[tmLocal.tm_mon],
-             tmLocal.tm_mday, tmLocal.tm_year + 1900);
+    formatLocalDateStr(dateBuf, sizeof(dateBuf));
     // Fixed slot width so DOW column does not shift.
     const char* dateSlot = "Www Mmm 99 9999";
     int dateX = 128 - u8g2.getStrWidth(dateSlot);
@@ -136,14 +128,14 @@ void drawDashboard() {
 
   unsigned long d = 0, h = 0, m = 0, s = 0;
   uptimeDhms(d, h, m, s);
-  (void)s;
-  if (d > 999UL) d = 999UL; // OLED field is 3 digits
+  (void)s; // OLED omits seconds (web SysInfo keeps d h m s)
+  if (d > 99UL) d = 99UL; // OLED field is 2 digits
   char upTempBuf[36];
   if (dashTempC > -998.0f) {
-    snprintf(upTempBuf, sizeof(upTempBuf), "Up:%3lud %2luh %2lum T:%3.0fF/%3.0fC",
+    snprintf(upTempBuf, sizeof(upTempBuf), "Up:%2lud %2luh %2lum T:%3.0fF/%3.0fC",
              d, h, m, dashTempF, dashTempC);
   } else {
-    snprintf(upTempBuf, sizeof(upTempBuf), "Up:%3lud %2luh %2lum T:--Error--", d, h, m);
+    snprintf(upTempBuf, sizeof(upTempBuf), "Up:%2lud %2luh %2lum T:--Error--", d, h, m);
   }
   u8g2.drawStr(0, 23, upTempBuf);
 

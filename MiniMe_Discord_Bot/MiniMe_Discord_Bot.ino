@@ -5,20 +5,21 @@
   secrets.h / secrets.example.h  -- Wi-Fi, tokens, IDs (gitignored)
   minime_config.h                -- pins, buffer sizes, timing constants
   minime.h                         -- shared declarations and globals
-  time_util.cpp                    -- NTP, Pacific DST, updateLocalTime
+  time_util.cpp                    -- NTP, Pacific DST, date/uptime format helpers
   users.cpp                        -- tracked users, guild cache, presence
   display.cpp                      -- OLED dashboard, sleep, transient overlay
   touch.cpp                        -- touch wake, USB VBUS compensation
   hardware.cpp                     -- servo, NeoPixel, DS18B20, GPIO
-  discord_rest.cpp                 -- HTTPS REST, sendDiscordMessage, members
+  discord_rest.cpp                 -- HTTPS REST (CA bundle), sendDiscordMessage, members
   discord_gateway.cpp              -- websocket, heartbeat, identify, events
   serial_log.cpp                   -- MmLog -> web UI only (no USB Serial / UART0)
   ota.cpp                          -- Wi-Fi ArduinoOTA firmware update
-  web_ui.cpp                       -- LAN page: logo + display + log + serial + light/dark
+  web_ui.cpp                       -- LAN page + status JSON (ArduinoJson)
+  web_assets.h                     -- LAN CSS + boot/app JS (PROGMEM)
   k9dtv_logo_svg.h                 -- dark K9DTV logo for /logo.svg
   k9dtv_logo_bright_svg.h          -- light K9DTV logo for /logo-bright.svg
   menu_chip_svg.h                  -- dark/light IC chips for theme toggle
-  commands.cpp                     -- handleCommand, APIs, DeepSeek, scheduled
+  commands.cpp                     -- handleCommand tokenizer, APIs, DeepSeek, scheduled
   MiniMe_Discord_Bot.ino           -- setup / loop + Wi-Fi / gateway connect
 
  OLED sleep dims then blanks the panel only; ESP32 and Wi-Fi stay up.
@@ -43,15 +44,20 @@
  Also copy partitions.csv with the sketch (needed for the 16MB OTA layout).
 */
 #include "minime.h"
+#include "esp_wifi.h"
 
 void connectWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false); // modem sleep breaks ArduinoOTA (port 3232)
+  esp_wifi_set_ps(WIFI_PS_NONE); // IDF: no Wi-Fi power save (fewer WS blips)
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   showTransient("WiFi", "Connecting...");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
   }
+  // Re-assert after associate (some stacks re-enable sleep on connect).
+  WiFi.setSleep(false);
+  esp_wifi_set_ps(WIFI_PS_NONE);
   showTransient("WiFi", "Connected");
 }
 
@@ -104,6 +110,5 @@ void loop() {
   pollTouchWake();
   updateBotPresenceIdle();
   updateDisplay();
-  applyCpuForIdleState();
-  delay(5);
+  yield();
 }

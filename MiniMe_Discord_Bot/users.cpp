@@ -1,7 +1,7 @@
 #include "minime.h"
 
 TrackedUser trackedUsers[MAX_TRACKED_USERS];
-String cachedGuildIds[3];
+String cachedGuildIds[MAX_CACHED_GUILDS];
 uint8_t cachedGuildCount = 0;
 unsigned long usesWindowStartMillis = 0;
 
@@ -143,6 +143,6 @@ void rememberGuildId(const String& gid) {
   for (uint8_t i = 0; i < cachedGuildCount; i++) {
     if (cachedGuildIds[i] == id) return;
   }
-  if (cachedGuildCount >= 3) return;
+  if (cachedGuildCount >= MAX_CACHED_GUILDS) return;
   cachedGuildIds[cachedGuildCount++] = id;
 }

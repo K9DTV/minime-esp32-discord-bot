@@ -4,7 +4,6 @@
 String otaStatusText();
 
 unsigned long lastSysInfoMillis = 0;
-int lastSentHour = -1;
 bool askNeedPost = false;
 String askPendingQuestion;
 String askPendingChannelId;
@@ -58,11 +57,12 @@ bool getScienceNews(String& outReport) {
     setHttpOpenError(outReport, openErr, "Science news");
     return false;
   }
-  StaticJsonDocument<192> filter;
+  // SNAPI v4: { "count", "next", "results": [ { title, news_site, url, ... } ] }
+  StaticJsonDocument<384> filter;
   filter["results"][0]["title"] = true;
   filter["results"][0]["news_site"] = true;
   filter["results"][0]["url"] = true;
-  StaticJsonDocument<2048> doc;
+  StaticJsonDocument<4096> doc;
   DeserializationError err = deserializeJson(doc, httpsClient, DeserializationOption::Filter(filter));
   httpsRelease();
   if (err) {
@@ -286,28 +286,6 @@ bool askDeepSeek(const String& question, String& outReport) {
   }
   String answer = collapseWhitespace(doc["choices"][0]["message"]["content"] | "");
   if (answer.length() == 0) {
-    int ckey = respBody.indexOf("\"content\"");
-    if (ckey >= 0) {
-      int colon = respBody.indexOf(':', ckey);
-      int q1 = respBody.indexOf('"', colon + 1);
-      if (q1 >= 0) {
-        String extracted;
-        for (int i = q1 + 1; i < (int)respBody.length(); i++) {
-          char c = respBody[i];
-          if (c == '\\' && i + 1 < (int)respBody.length()) {
-            char n = respBody[i + 1];
-            if (n == 'n') { extracted += ' '; i++; continue; }
-            if (n == '"' || n == '\\') { extracted += n; i++; continue; }
-          }
-          if (c == '"') break;
-          extracted += c;
-          if (extracted.length() > 1900) break;
-        }
-        answer = collapseWhitespace(extracted);
-      }
-    }
-  }
-  if (answer.length() == 0) {
     outReport = "DeepSeek returned an empty answer. " + truncateText(statusLine, 60);
     return false;
   }
@@ -358,20 +336,35 @@ void runFetchCommand(const String& channelId, const char* label, const char* fet
   sendFetchResult(channelId, label, fetch(report), report);
 }
 
-void handleCommand(const String& content, const String& authorId, const String& authorName,
-                   const String& channelId, bool isDM)
-{
-  if (!isDM && channelId != TARGET_CHANNEL_ID && channelId != TARGET_CHANNEL_ID1) {
-    return;
+// Commands whose args are the rest of the line (multi-word). Others take one token.
+static bool cmdConsumesRest(const String& cmd) {
+  return cmd == "!ask" || cmd == "!display" || cmd == "!led";
+}
+
+static void stripTrailingPunct(String& s) {
+  while (s.length() > 0) {
+    char last = s.charAt(s.length() - 1);
+    if (last == '.' || last == ',' || last == '!' || last == '?' ||
+        last == ';' || last == ':') {
+      s.remove(s.length() - 1);
+    } else {
+      break;
+    }
   }
+}
+
+// Find "!cmd" at line start or after whitespace. Sets cmdWord (lower) + args.
+static bool tokenizeCommand(const String& content, String& cmdWord, String& args) {
   String raw = content;
   raw.trim();
+  if (raw.length() == 0) return false;
+
   bool midLine = false;
   if (!raw.startsWith("!")) {
     int bang = -1;
-    for (int i = 0; i < raw.length(); i++) {
+    for (int i = 0; i < (int)raw.length(); i++) {
       if (raw.charAt(i) != '!') continue;
-      char next = (i + 1 < raw.length()) ? raw.charAt(i + 1) : 0;
+      char next = (i + 1 < (int)raw.length()) ? raw.charAt(i + 1) : 0;
       if (!((next >= 'a' && next <= 'z') || (next >= 'A' && next <= 'Z'))) continue;
       if (i > 0) {
         char prev = raw.charAt(i - 1);
@@ -380,31 +373,37 @@ void handleCommand(const String& content, const String& authorId, const String& 
       bang = i;
       break;
     }
-    if (bang < 0) return;
+    if (bang < 0) return false;
     raw = raw.substring(bang);
     midLine = true;
   }
 
-  noteBotActivity();
   int spIdx = raw.indexOf(' ');
-  String cmdWord = (spIdx > 0) ? raw.substring(0, spIdx) : raw;
-  String args = (spIdx > 0) ? raw.substring(spIdx + 1) : "";
+  cmdWord = (spIdx > 0) ? raw.substring(0, spIdx) : raw;
+  args = (spIdx > 0) ? raw.substring(spIdx + 1) : "";
   cmdWord.toLowerCase();
   args.trim();
-  // Mid-line bang: one-word args for most cmds. !ask / !display / !led keep multi-word args.
-  if (midLine && args.length() > 0 &&
-      cmdWord != "!ask" && cmdWord != "!display" && cmdWord != "!led") {
+  stripTrailingPunct(cmdWord);
+
+  // Mid-line: one-word args unless cmdConsumesRest. Strip trailing punct on short args.
+  if (midLine && args.length() > 0 && !cmdConsumesRest(cmdWord)) {
     int argSp = args.indexOf(' ');
     if (argSp > 0) args = args.substring(0, argSp);
-    while (args.length() > 0) {
-      char last = args.charAt(args.length() - 1);
-      if (last == '.' || last == ',' || last == '!' || last == '?' || last == ';' || last == ':') {
-        args.remove(args.length() - 1);
-      } else {
-        break;
-      }
-    }
+    stripTrailingPunct(args);
   }
+  return cmdWord.length() > 1;
+}
+
+void handleCommand(const String& content, const String& authorId, const String& authorName,
+                   const String& channelId, bool isDM)
+{
+  if (!isDM && channelId != TARGET_CHANNEL_ID && channelId != TARGET_CHANNEL_ID1) {
+    return;
+  }
+  String cmdWord, args;
+  if (!tokenizeCommand(content, cmdWord, args)) return;
+
+  noteBotActivity();
 
   recordUserUse(authorId, authorName);
 
@@ -618,7 +617,8 @@ void handleCommand(const String& content, const String& authorId, const String& 
 
 void backgroundTasks() {
   runAskFromLoop();
-  // No boot !sys / !help channel posts. Mark once Gateway is up so we never auto-post.
+  // lastSysInfoMillis doubles as "boot-post sent" flag; set once at READY
+  // so scheduled posts never fire on the first gateway connection.
   if (lastSysInfoMillis != 0) return;
   if (!gatewayConnected || !identified) return;
   lastSysInfoMillis = millis();

@@ -1,6 +1,15 @@
 # Changelog
 
-Older sections describe that release as shipped. Current firmware and docs are **0.5.1** (see `VERSION` and README).
+Older sections describe that release as shipped. Current firmware and docs are **0.5.2** (see `VERSION` and README).
+
+## 0.5.2
+
+- HTTPS REST: CA cert bundle again (no `setInsecure`); Discord bot token and API keys verified TLS.
+- OLED uptime row shows seconds; OLED refresh **4 s**; LAN web `/api/status` poll **2 s**.
+- Shared `formatLocalDateStr` / `formatUptimeStr`; command tokenizer with `cmdConsumesRest`.
+- DeepSeek JSON buffer **24576**; removed scrape fallback. Science news filter/doc sized for SNAPI v4 `results`.
+- Removed no-op `applyCpuForIdleState` (Discord Idle after 5 min quiet unchanged). `WIFI_PS_NONE` + HB ack grace kept.
+- LAN CSS + boot/app JS moved to `web_assets.h`; `/api/status` built with ArduinoJson. Confirm flash via `Display · v0.5.2`.
 
 ## 0.5.1
 
