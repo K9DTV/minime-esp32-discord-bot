@@ -10,7 +10,7 @@ MiniMe is firmware for a **WeAct Studio ESP32-S3-N16R8** that runs a Discord bot
 
 *Breadboard prototype: WeAct Studio ESP32-S3-N16R8, 128x128 SSD1327 (GND / VCC / SCL / SDA), two discrete LEDs, GPIO 4 touch wake pad (yellow wire loop), and DS18B20 on GPIO 10. Sensor fail on the OLED is `T:--Error--`.*
 
-**Status:** shipped breadboard firmware · **v0.5.2** · green CI compile · PCB / desk case still planned (see Ongoing project).
+**Status:** shipped breadboard firmware · **v0.5.3** · green CI compile · PCB / desk case still planned (see Ongoing project).
 
 I find this working well and have not found any bugs. Unless I find something to add to its function, or a bug, this is now shipped code.
 
@@ -21,7 +21,7 @@ After Wi-Fi connects, MiniMe serves a LAN web dashboard at `http://<board-ip>/` 
   <img src="docs/ESP32S3-Web-UI-Bright.png#gh-light-mode-only" alt="MiniMe LAN web UI (light)" width="640">
 </p>
 
-*LAN web UI (v0.5.2): light/dark + Display/Log layout chips; Sig / Heap / Srv bars share one left edge. Screenshot follows your GitHub theme (light/dark), same idea as k9dtv.com.*
+*LAN web UI (v0.5.3): light/dark + Display/Log layout chips; Sig / Heap / Srv bars share one left edge. Screenshot follows your GitHub theme (light/dark), same idea as k9dtv.com.*
 
 Current version: see `VERSION` and `CHANGELOG.md`. License: see `LICENSE` (MIT for original MiniMe files only).
 

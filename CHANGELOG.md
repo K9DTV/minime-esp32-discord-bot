@@ -1,10 +1,15 @@
 # Changelog
 
-Older sections are append-only history (as written when that release shipped). Current firmware is **0.5.2** (see `VERSION` and README).
+Older sections are append-only history (as written when that release shipped). Current firmware is **0.5.3** (see `VERSION` and README).
+
+## 0.5.3
+
+- Fix compile on Arduino-ESP32 core **3.3.x**: HTTPS uses `WiFiClientSecure::useBuiltinCACertBundle()` (IDF Mozilla bundle already linked in the core). PlatformIO-style `_binary_data_crt_x509_crt_bundle_bin_*` symbols are **not** present in the Arduino CLI package — CI linked neither `_start` nor `_end`. Older cores still call `setCACertBundle(start, end - start)` with `_binary_x509_crt_bundle_*`.
+- Confirm flash via `Display · v0.5.3`.
 
 ## 0.5.2
 
-- HTTPS REST: CA cert bundle again (no `setInsecure`); Discord bot token and API keys verified TLS. Arduino-ESP32 3.3+: `useBuiltinCACertBundle()` (CI); older: `setCACertBundle(ptr, size)`.
+- HTTPS REST: CA cert bundle again (no `setInsecure`); Discord bot token and API keys verified TLS.
 - OLED uptime row: `Up:xxd xxh xxm T:xxxF/xxxC` (**no** seconds on OLED; web SysInfo still shows `d h m s`). OLED refresh **4 s**; LAN web `/api/status` poll **2 s**.
 - Shared `formatLocalDateStr` / `formatUptimeStr`; command tokenizer with `cmdConsumesRest`.
 - DeepSeek JSON buffer **24576**; removed scrape fallback. Science news filter/doc sized for SNAPI v4 `results`.
