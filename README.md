@@ -24,7 +24,7 @@ After Wi-Fi connects, MiniMe serves a LAN web dashboard at `http://<board-ip>/` 
 
 *LAN web UI (v0.5.3): light/dark + Display/Log layout chips; Sig / Heap / Srv bars share one left edge. Screenshot follows your GitHub theme (light/dark), same idea as k9dtv.com.*
 
-Current version: see `VERSION` and `CHANGELOG.md`. License: see `LICENSE` (MIT for original MiniMe files only).
+Current version: see `VERSION` and `CHANGELOG.md`. License: see `LICENSE` (non-commercial for original MiniMe files only; commercial use requires express written permission).
 
 This is my first big modern MCU / Discord bot project on ESP32.  
 AI helped with firmware edits, multi-file layout, and GitHub updates. I owned the architecture, wiring, Discord Gateway/OLED design, commands, power/idle trade-offs, and what shipped on the board.
@@ -442,6 +442,9 @@ Menu names can vary slightly by esp32 package version:
 
 ## License
 
-Original MiniMe source, README, changelog, and photos in this repo are under the **MIT License**. See `LICENSE`.
+Original MiniMe source, README, changelog, and photos in this repo are under a
+**non-commercial** license: personal and educational use is allowed; commercial
+use requires the copyright holder's prior express written permission. See `LICENSE`.
+Third-party libraries and APIs keep their own terms.
 
 That grant does **not** cover Arduino/ESP32 libraries, U8g2, Discord, or other APIs. Those stay under their own licenses and terms. You still have to install the libraries listed under **Arduino IDE setup** and follow each service’s rules for keys and bots.

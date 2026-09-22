@@ -1,14 +1,14 @@
-MIT License
-
 Copyright (c) 2026 James, K9DTV
+
+Non-Commercial License — original material only
 
 This license applies only to original MiniMe material in this repository,
 including:
 
-  - MiniMe_Discord_Bot/ sketch sources (MiniMe_Discord_Bot.ino, minime.h,
-    config.h, secrets.example.h, and the accompanying .cpp modules), as
-    original source — not as a claim over libraries they #include
-  - README.md, CHANGELOG.md, VERSION
+  - MiniMe_Discord_Bot/ sketch sources (.ino, headers, .cpp modules,
+    secrets.example.h, partitions, and related assets), as original source —
+    not as a claim over libraries they #include
+  - README.md, CHANGELOG.md, VERSION, LICENSE
   - docs/ photographs and other original documentation
 
 It does not apply to third-party libraries, board support packages, fonts,
@@ -22,14 +22,18 @@ Local secrets.h (gitignored) is never part of this repository and is not
 licensed by this file.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+of this software and associated documentation files (the "Software"), to use,
+copy, modify, merge, publish, and distribute copies of the Software for
+personal, educational, and other non-commercial purposes, subject to the
+following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+2. Commercial use of the Software — including sale, licensing for a fee, use
+   in a commercial product or service, or any other commercial purpose — is
+   not permitted without the copyright holder's prior express written
+   permission.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -41,7 +45,7 @@ SOFTWARE.
 
 ---
 
-Third-party software MiniMe is typically built with (not MiniMe, not MIT
+Third-party software MiniMe is typically built with (not MiniMe, not covered
 by this file). Check each project's current license in the copy you install:
 
   - Espressif ESP32 Arduino core / IDF
