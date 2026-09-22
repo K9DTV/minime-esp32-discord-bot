@@ -52,8 +52,14 @@ void connectWiFi() {
   esp_wifi_set_ps(WIFI_PS_NONE); // IDF: no Wi-Fi power save (fewer WS blips)
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   showTransient("WiFi", "Connecting...");
-  while (WiFi.status() != WL_CONNECTED) {
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 30000UL) {
     delay(500);
+  }
+  if (WiFi.status() != WL_CONNECTED) {
+    showTransient("WiFi", "Timeout");
+    // fall through; ensureWifiForGateway() retries in loop()
+    return;
   }
   // Re-assert after associate (some stacks re-enable sleep on connect).
   WiFi.setSleep(false);
@@ -74,7 +80,7 @@ void setup() {
   } else {
     showTransient("Serial", "CDC OFF+USB");
   }
-  delay(800);
+  delay(800); // hold boot transient so it's visible
   showTransient("Booting...", "ESP32-S3 Discord bot");
   setupPins();
   sensors.begin();
@@ -89,7 +95,7 @@ void setup() {
   } else {
     showTransient("Users", "Fetch failed");
   }
-  delay(1200);
+  delay(1200); // hold user-loaded transient so it's visible
   connectGateway();
   setServoAngle(45);
   lastDashMillis = 0;

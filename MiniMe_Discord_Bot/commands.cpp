@@ -1,8 +1,5 @@
 #include "minime.h"
 
-// Declared in minime.h / ota.cpp — keep if sketch-folder minime.h is behind
-String otaStatusText();
-
 unsigned long lastSysInfoMillis = 0;
 bool askNeedPost = false;
 String askPendingQuestion;
@@ -418,7 +415,7 @@ void handleCommand(const String& content, const String& authorId, const String& 
       "• `!iss` — Current International Space Station position.\n"
       "• `!news` — Space and high-tech science headlines.\n"
       "• `!physics` — Latest arXiv physics papers.\n"
-      "• `!sys` — Displays system diagnostics (uptime, heap, RSSI, etc.).\n"
+      "• `!sys` — System diagnostics (uptime, heap, RSSI, IP, OTA host, gateway, USB VBUS, firmware URL).\n"
       "• `!temp` — Reads the current indoor temperature sensor.\n"
       "• `!time` — Displays the current bot time.\n"
       "• `!weather <zip>` — Fetches the weather report for a US ZIP code.\n"

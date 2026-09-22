@@ -62,7 +62,6 @@ void updateBotPresenceIdle();
 void sendBotPresence(const char* status, bool afk);
 void gwLogEvent(const String& ev);
 void sendIdentify();
-void sendResume();
 void sendHeartbeat();
 void pumpGateway();
 void gwSerialService();

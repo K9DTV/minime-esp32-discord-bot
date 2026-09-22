@@ -52,7 +52,7 @@ Same list Discord shows for `!help`:
 - `!iss` — International Space Station position
 - `!news` — space / high-tech headlines
 - `!physics` — latest arXiv physics papers
-- `!sys` — uptime (`d h m s`), free heap (internal + 8MB PSRAM), Wi-Fi RSSI, gateway, USB VBUS
+- `!sys` — system diagnostics (same payload as Discord `!sys`: uptime, heap, RSSI, IP, OTA host, gateway, USB VBUS, firmware URL)
 - `!ota` — Wi-Fi ArduinoOTA info (IP / hostname / port 3232)
 - `!temp` — indoor DS18B20 temperature
 - `!time` — bot local time (US Pacific, DST aware)
@@ -62,18 +62,13 @@ Same list Discord shows for `!help`:
 
 - `!led on/off` / `!led <r> <g> <b>` — RGB NeoPixel (0-255 per channel); GPIO 48; `on` = 255 255 255
 - `!servo <0-90>` — servo angle (updates the `Srv:` bar)
-- `!set1 on` / `!set1 off` — digital output pin 1
-- `!set2 on` / `!set2 off` — digital output pin 2
+- `!set1 on` / `!set1 off` — digital output pin 1 (steady level)
+- `!set2 on` / `!set2 off` — digital output pin 2 (steady level)
 - `!clear` — turn set1/set2 off
 
-### Automatic posts
+### Channel / DM commands
 
-Sent once to `TARGET_CHANNEL_ID` after Gateway connects (boot only):
-
-- `!sys` diagnostics
-- `!help` command list
-
-No repeating 4-hour sys posts or daily temperature summaries. Commands still work in `TARGET_CHANNEL_ID`, `TARGET_CHANNEL_ID1`, and DMs.
+Commands work in `TARGET_CHANNEL_ID`, `TARGET_CHANNEL_ID1`, and DMs. **No automatic boot posts** (`!sys` / `!help` are not sent on Gateway connect).
 
 ### Bot Discord presence
 
@@ -81,7 +76,7 @@ MiniMe’s own Discord status (green Online / yellow Idle) in Discord:
 
 - Starts **Online** when the Gateway identifies
 - Goes **Idle** after **5 minutes** with no activity
-- Returns to **Online** on commands and the boot channel announce (touch does **not** set Online)
+- Returns to **Online** on commands (touch does **not** set Online)
 
 ### `!ask` / DeepSeek
 
@@ -99,7 +94,7 @@ Everything below runs on one **ESP32-S3**. Discord stays in the cloud; MiniMe ta
 
 *Same flowchart as the project page: tight Cloud and board boxes, WeAct under OLED in line with http board-ip.*
 
-- **Gateway** — live link for chat commands, presence, Online/Idle, heartbeats (must not stall during long HTTPS). Heartbeats start after Hello (jittered first send); a missing OP11 ACK past the Discord interval plus **15 s** grace forces disconnect (`HB_ACK_TIMEOUT`). Resume is skipped; one `beginSSL` at boot, then library reconnect only (no second bind on drop / OP7 / OP9).
+- **Gateway** — live link for chat commands, presence, Online/Idle, heartbeats (must not stall during long HTTPS). Heartbeats start after Hello (jittered first send); a missing OP11 ACK past the Discord interval plus **15 s** grace forces disconnect (`HB_ACK_TIMEOUT`). **Identify-only** after drops (no session resume); one `beginSSL` at boot, then library reconnect only (no second bind on drop / OP7 / OP9).
 - **REST** — bot posts replies and loads member names; also pulls science/weather/AI over HTTPS/HTTP. Outbound TLS uses the ESP32 **CA cert bundle** (no `setInsecure`) so `BOT_TOKEN` and API keys are not exposed to MITM. One shared `WiFiClientSecure`; `httpsInUse` is claimed in the transport (`sendDiscordMessage`, `discordRestGet`, `httpsGetOpen` / `httpsRelease`) so overlapping HTTPS cannot `stop()` each other. Discord Gateway WebSocket TLS is still whatever the WebSockets library does (separate from REST).
 - **OLED** — always the status board; sleep blanks the panel only (Wi-Fi and Gateway stay up). Sig / Heap / Srv bar fills are computed once in display helpers; the LAN API exposes the same fills as percents (JS only paints width). Dashboard redraw every **4 s**.
 - **LAN web UI** — same board status in a browser at `http://<board-ip>/` (Display, SysInfo, LOG, Serial); light/dark theme and Display/Log layout chips; polls `/api/status` every **2 s** (CSS/JS in `web_assets.h`, status JSON via ArduinoJson); does not replace OLED. **LOG** is a **200**-line ring with an accurate byte counter; if the next line would push past **20 KB**, LOG is wiped then that line is kept. **Serial** stays a fixed **12**-line ring. **MmLog** feeds the web LOG/Serial panels only (no USB Serial / UART0 traffic — Serial is for upload/OTA, not the log file).
@@ -192,7 +187,7 @@ Use `#define` (not `const char*`) so every `.cpp` can include `secrets.h` withou
 | `DEEPSEEK_API_KEY` | DeepSeek for `!ask` |
 | `BOT_GUILD_ID` | One guild to load members from at boot (numeric snowflake) |
 | `OWNER_ID_STR` | Who can run LED / set1 / set2 / servo |
-| `TARGET_CHANNEL_ID` | Commands + one-time boot `!sys`/help |
+| `TARGET_CHANNEL_ID` | Commands (no automatic boot posts) |
 | `TARGET_CHANNEL_ID1` | Second channel where commands are allowed |
 
 IDs are **digits only**. Paste them as C strings, for example `"123456789012345678"`.
@@ -214,7 +209,7 @@ Boot loads OLED names from `BOT_GUILD_ID` and from the guilds of `TARGET_CHANNEL
   - **Message Content Intent**
   - **Server Members Intent**
   - **Presence Intent**
-8. Identify intents value in firmware: `37635` (guilds, members, presences, guild messages, DMs, message content). `large_threshold` is `250`.
+8. Identify intents: `INTENTS_MINIME` in `minime_config.h` (named bit flags; `static_assert` checks `== 37635`). Boot log: `[GW] intents=37635`. `large_threshold` is `250`.
 
 ### Invite the bot to your server
 

@@ -42,6 +42,18 @@ const unsigned long BOT_PRESENCE_IDLE_MS = 300000UL; // 5 minutes quiet -> Idle
 const unsigned long GW_HB_ACK_GRACE_MS = 15000UL;
 const uint32_t CPU_MHZ_ACTIVE = 240; // OTA forces this; no idle downclock
 
+// Gateway Identify intents (single source; used by sendIdentify + boot log).
+constexpr uint32_t INTENT_GUILDS          = 1u << 0;
+constexpr uint32_t INTENT_GUILD_MEMBERS   = 1u << 1;
+constexpr uint32_t INTENT_GUILD_PRESENCES = 1u << 8;
+constexpr uint32_t INTENT_GUILD_MESSAGES  = 1u << 9;
+constexpr uint32_t INTENT_DIRECT_MESSAGES = 1u << 12;
+constexpr uint32_t INTENT_MESSAGE_CONTENT = 1u << 15;
+constexpr uint32_t INTENTS_MINIME =
+    INTENT_GUILDS | INTENT_GUILD_MEMBERS | INTENT_GUILD_PRESENCES |
+    INTENT_GUILD_MESSAGES | INTENT_DIRECT_MESSAGES | INTENT_MESSAGE_CONTENT;
+static_assert(INTENTS_MINIME == 37635u, "intents value drifted from Discord docs");
+
 // ====== DISPLAY STATE ======
 const unsigned long DASH_REFRESH_MS = 4000UL; // OLED redraw interval
 const unsigned long DISPLAY_IDLE_MS = 60000UL; // 1 minute full brightness
@@ -56,6 +68,6 @@ const uint8_t MAX_CACHED_GUILDS = 3;
 
 // ====== LAN WEB UI (dashboard + log; plain HTTP) ======
 const uint16_t WEB_UI_PORT = 80;
-#define WEB_STATUS_POLL_MS 2000UL // browser /api/status poll (ms); edit here to override
+const unsigned long WEB_STATUS_POLL_MS = 2000UL; // browser /api/status poll; edit here to override
 
 #endif

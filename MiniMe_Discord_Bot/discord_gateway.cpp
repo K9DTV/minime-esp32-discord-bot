@@ -10,8 +10,6 @@ int  heartbeatIntervalMs   = 0;
 unsigned long lastHeartbeatMillis = 0;
 int lastSeq               = 0;
 String sessionId;
-bool canResume            = false;
-static String resumeGatewayHost; // host only, from READY resume_gateway_url
 unsigned long lastBotActivityMillis = 0;
 uint8_t botDiscordStatus = 0;
 
@@ -27,7 +25,7 @@ static unsigned long gwLastFullLogMillis = 0;
 static unsigned long gwReconnectIntervalMs = 5000;
 static const unsigned long GW_RECONNECT_BASE_MS = 5000UL;
 static const unsigned long GW_RECONNECT_MAX_MS = 5000UL; // was 60000; keep tries short so drop recovery stays under ~30s when Discord answers
-static const unsigned long GW_RECONNECT_FAST_MS = 200UL; // after drop: IDENTIFY ASAP (no resume path)
+static const unsigned long GW_RECONNECT_FAST_MS = 200UL; // after drop: IDENTIFY ASAP
 static unsigned long gwLastWifiKickMillis = 0;
 static String gwLastDropKind;
 static bool gwLoggedConnectDuringDrop = false;
@@ -84,13 +82,11 @@ static void gwClearDropState() {
   gwFastIdentifyPending = false;
 }
 
-// Resume never worked on this board: clear session and IDENTIFY on gateway.discord.gg.
-static void gwAbandonResume(const char* reason) {
+// Clear Discord session fields; always fresh IDENTIFY after the next connect.
+static void gwClearSession(const char* reason) {
   sessionId = "";
   lastSeq = 0;
-  canResume = false;
-  resumeGatewayHost = "";
-  gwLogAppend(String("ABANDON_RESUME ") + (reason ? reason : ""));
+  gwLogAppend(String("CLEAR_SESSION ") + (reason ? reason : ""));
 }
 
 static void gwSetReconnectIntervalMs(unsigned long ms) {
@@ -99,9 +95,9 @@ static void gwSetReconnectIntervalMs(unsigned long ms) {
   gwLogAppend(String("RECONNECT_INTERVAL_MS=") + String(gwReconnectIntervalMs));
 }
 
-// Drop path: skip resume; short reconnect so DISCONNECTED cannot climb to 5s.
+// Drop path: short reconnect so DISCONNECTED cannot climb to 5s.
 static void gwArmFastIdentify(const char* reason) {
-  gwAbandonResume(reason);
+  gwClearSession(reason);
   gwFastIdentifyPending = true;
   gwSetReconnectIntervalMs(GW_RECONNECT_FAST_MS);
 }
@@ -174,21 +170,6 @@ static void ensureWifiForGateway() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 }
 
-// Discord READY gives resume_gateway_url (e.g. wss://gateway-us-east1-b.discord.gg).
-// Resume must reconnect there; identify uses gateway.discord.gg.
-static void parseResumeGatewayHost(const char* url) {
-  resumeGatewayHost = "";
-  if (!url || !url[0]) return;
-  const char* p = url;
-  if (strncmp(p, "wss://", 6) == 0) p += 6;
-  else if (strncmp(p, "ws://", 5) == 0) p += 5;
-  else if (strncmp(p, "https://", 8) == 0) p += 8;
-  else if (strncmp(p, "http://", 7) == 0) p += 7;
-  while (*p && *p != '/' && *p != ':' && *p != '?') {
-    resumeGatewayHost += *p++;
-  }
-}
-
 static void bindGatewayHost(const char* host) {
   if (!host || !host[0]) host = "gateway.discord.gg";
   gatewayWS.beginSSL(host, 443, "/?v=10&encoding=json");
@@ -198,9 +179,10 @@ static void bindGatewayHost(const char* host) {
 }
 
 void connectGateway() {
-  resumeGatewayHost = "";
   // One beginSSL for the life of the bot. After drops, only setReconnectInterval +
   // disconnect(); do not beginSSL again (fights the library reconnect timer).
+  MmLog.print("[GW] intents=");
+  MmLog.println(INTENTS_MINIME);
   bindGatewayHost("gateway.discord.gg");
 }
 
@@ -272,17 +254,14 @@ void updateBotPresenceIdle() {
 }
 
 void sendIdentify() {
-  StaticJsonDocument<1024> doc;
+  StaticJsonDocument<768> doc;
   doc["op"] = 2;
   JsonObject d = doc.createNestedObject("d");
   d["token"] = BOT_TOKEN;
-  JsonObject props = d.createNestedObject("properties");
-  props["os"]     = "linux";
-  props["browser"] = "esp32";
-  props["device"]  = "esp32";
-  d["compress"]         = false;
+  d.createNestedObject("properties"); // Discord accepts empty properties
+  d["compress"] = false;
   d["large_threshold"] = 250;
-  d["intents"] = 37635; // GUILDS + MEMBERS + PRESENCES + MESSAGES + DMs + MESSAGE_CONTENT
+  d["intents"] = INTENTS_MINIME;
   JsonObject presence = d.createNestedObject("presence");
   presence["since"] = nullptr;
   presence.createNestedArray("activities");
@@ -292,17 +271,6 @@ void sendIdentify() {
   lastBotActivityMillis = millis();
   botDiscordStatus = 2;
   gwLogAppend("SENT_IDENTIFY");
-}
-
-void sendResume() {
-  StaticJsonDocument<512> doc;
-  doc["op"] = 6;
-  JsonObject d = doc.createNestedObject("d");
-  d["token"] = BOT_TOKEN;
-  d["session_id"] = sessionId;
-  d["seq"] = lastSeq;
-  gwSendJson(doc);
-  gwLogAppend(String("SENT_RESUME seq=") + String(lastSeq));
 }
 
 void sendHeartbeat() {
@@ -377,20 +345,17 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
       detail += String(lastSeq);
       detail += " session=";
       detail += sessionId.length() ? "yes" : "no";
-      detail += " canResume=";
-      detail += canResume ? "1" : "0";
 
       gwNoteDrop(kind, detail);
       gwLoggedConnectDuringDrop = false;
 
-      // Never resume (never worked here). Keep fast IDENTIFY interval if already armed.
-      // Do not beginSSL again — WebSocketsClient reconnect uses the original host.
+      // Identify-only after drops. Do not beginSSL again — library reconnects to BIND_HOST.
       if (gwFastIdentifyPending) {
         gwSetReconnectIntervalMs(GW_RECONNECT_FAST_MS);
       } else if (wifiUp) {
         gwArmFastIdentify("disconnect");
       } else {
-        gwAbandonResume("wifi_down");
+        gwClearSession("wifi_down");
         gwSetReconnectBackoff(false);
       }
       ensureWifiForGateway();
@@ -428,7 +393,6 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
         gwFilter["t"] = true;
         gwFilter["d"]["heartbeat_interval"] = true;
         gwFilter["d"]["session_id"] = true;
-        gwFilter["d"]["resume_gateway_url"] = true;
         gwFilter["d"]["status"] = true;
         gwFilter["d"]["user"]["id"] = true;
         gwFilter["d"]["user"]["username"] = true;
@@ -460,7 +424,7 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
         lastSeq = (*gwDoc)["s"].as<int>();
       }
 
-      // Hello: start HB (jittered first), then Identify only (resume never succeeds here)
+      // Hello: start HB (jittered first), then Identify
       if (op == 10) {
         heartbeatIntervalMs = (*gwDoc)["d"]["heartbeat_interval"] | 0;
         hbAckPending = false;
@@ -476,7 +440,7 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
         return;
       }
 
-      // Reconnect: drop session; library reconnects to same BIND_HOST (no second beginSSL)
+      // Reconnect: clear session; library reconnects to same BIND_HOST (no second beginSSL)
       if (op == 7) {
         gwNoteDrop("OP7_RECONNECT", "OP7_RECONNECT");
         showTransient("Gateway", "Op7 reconnect");
@@ -485,7 +449,7 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
         return;
       }
 
-      // Invalid Session: always fresh IDENTIFY (resume path unused)
+      // Invalid Session: fresh IDENTIFY
       if (op == 9) {
         bool resumable = false;
         StaticJsonDocument<96> small;
@@ -511,16 +475,6 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
         if (strcmp(t, "READY") == 0) {
           identified = true;
           sessionId = (*gwDoc)["d"]["session_id"] | "";
-          {
-            const char* rurl = (*gwDoc)["d"]["resume_gateway_url"] | "";
-            parseResumeGatewayHost(rurl);
-            if (resumeGatewayHost.length()) {
-              gwLogAppend(String("RESUME_URL_HOST ") + resumeGatewayHost);
-            } else {
-              gwLogAppend("RESUME_URL_HOST (none)");
-            }
-          }
-          canResume = false; // resume disabled; always IDENTIFY after drops
           gwSetReconnectBackoff(true);
           gwClearDropState();
           gwLogAppend(String("READY session=") + (sessionId.length() ? "yes" : "no"));
@@ -534,8 +488,8 @@ void gatewayEvent(WStype_t type, uint8_t* payload, size_t length) {
           return;
         }
         if (strcmp(t, "RESUMED") == 0) {
+          // Identify-only firmware should not see RESUMED; treat like READY cleanup.
           identified = true;
-          canResume = false;
           gwSetReconnectBackoff(true);
           gwClearDropState();
           gwLogAppend("RESUMED");

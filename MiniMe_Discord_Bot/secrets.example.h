@@ -15,7 +15,7 @@
 #define BOT_GUILD_ID         "GUILD_ID"  // startup member fetch
 
 #define OWNER_ID_STR         "OWNER_ID_STR"         // GPIO / servo
-#define TARGET_CHANNEL_ID    "TARGET_CHANNEL_ID"    // commands + boot sysinfo/help once
+#define TARGET_CHANNEL_ID    "TARGET_CHANNEL_ID"    // commands only (no boot/auto posts)
 #define TARGET_CHANNEL_ID1   "TARGET_CHANNEL_ID1"   // second command channel
 
 // Wi-Fi firmware update (ArduinoOTA). Pick a real password in secrets.h.

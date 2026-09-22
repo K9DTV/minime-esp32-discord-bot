@@ -1,15 +1,17 @@
 # Changelog
 
-Older sections describe that release as shipped. Current firmware and docs are **0.5.2** (see `VERSION` and README).
+Older sections are append-only history (as written when that release shipped). Current firmware is **0.5.2** (see `VERSION` and README).
 
 ## 0.5.2
 
 - HTTPS REST: CA cert bundle again (no `setInsecure`); Discord bot token and API keys verified TLS.
-- OLED uptime row shows seconds; OLED refresh **4 s**; LAN web `/api/status` poll **2 s**.
+- OLED uptime row: `Up:xxd xxh xxm T:xxxF/xxxC` (**no** seconds on OLED; web SysInfo still shows `d h m s`). OLED refresh **4 s**; LAN web `/api/status` poll **2 s**.
 - Shared `formatLocalDateStr` / `formatUptimeStr`; command tokenizer with `cmdConsumesRest`.
 - DeepSeek JSON buffer **24576**; removed scrape fallback. Science news filter/doc sized for SNAPI v4 `results`.
 - Removed no-op `applyCpuForIdleState` (Discord Idle after 5 min quiet unchanged). `WIFI_PS_NONE` + HB ack grace kept.
-- LAN CSS + boot/app JS moved to `web_assets.h`; `/api/status` built with ArduinoJson. Confirm flash via `Display · v0.5.2`.
+- LAN CSS + boot/app JS in `web_assets.h`; `/api/status` ArduinoJson with once-allocated status doc. Static status JSON reuse; `yield()` in `loop()`.
+- Docs: README no longer claims boot `!sys`/`!help` auto-posts. Gateway: delete unused resume helpers (`sendResume` / resume host parse); identify-only after drops.
+- Note vs older changelog lines: set1/set2 remain **steady HIGH** in current code (not 1 Hz / 10 Hz flash). Confirm flash via `Display · v0.5.2`.
 
 ## 0.5.1
 
