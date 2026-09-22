@@ -2,7 +2,8 @@
 
 [![Compile](https://github.com/K9DTV/minime-esp32-discord-bot/actions/workflows/compile.yml/badge.svg)](https://github.com/K9DTV/minime-esp32-discord-bot/actions/workflows/compile.yml)
 
-**Project page:** https://k9dtv.com/project-minime.html
+**Project page:** https://k9dtv.com/project-minime.html  
+**Sister project:** [MiniMe II (Guition color LCD)](https://github.com/K9DTV/minime-ii-esp32-discord-bot)
 
 MiniMe is firmware for a **WeAct Studio ESP32-S3-N16R8** that runs a Discord bot on the chip. It joins Wi-Fi and the Discord Gateway, reads sensors, drives GPIO from chat, and shows a live dashboard on a **128x128 SSD1327** OLED.
 
