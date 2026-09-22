@@ -98,14 +98,12 @@ bool skipHttpHeaders(Client& client, unsigned long timeoutMs) {
 
 bool httpsConnect(const char* host, uint32_t timeoutMs) {
   httpsClient.stop();
-  // Verify server certs with ESP-IDF CA bundle. Never setInsecure -- BOT_TOKEN /
-  // DeepSeek / NASA keys must not ride a MITM-able TLS session.
-  // Arduino-ESP32 3.3.x+: setCACertBundle(ptr, size). Bundle symbol names vary by release.
-#if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
-  extern const uint8_t rootca_crt_bundle_start[] asm("_binary_data_crt_x509_crt_bundle_bin_start");
-  extern const uint8_t rootca_crt_bundle_end[] asm("_binary_data_crt_x509_crt_bundle_bin_end");
-  httpsClient.setCACertBundle(rootca_crt_bundle_start,
-                              (size_t)(rootca_crt_bundle_end - rootca_crt_bundle_start));
+  // Verify server certs. Never setInsecure -- BOT_TOKEN / API keys must not ride MITM TLS.
+  // Arduino-ESP32 3.3+: useBuiltinCACertBundle() attaches the IDF Mozilla bundle already
+  // linked into the core (no PlatformIO embed symbols). Older cores: pass start/end + size.
+  // Call after every stop() -- NetworkClientSecure drops the attach callback on stop.
+#if defined(ESP_ARDUINO_VERSION) && (ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0))
+  httpsClient.useBuiltinCACertBundle();
 #else
   extern const uint8_t rootca_crt_bundle_start[] asm("_binary_x509_crt_bundle_start");
   extern const uint8_t rootca_crt_bundle_end[] asm("_binary_x509_crt_bundle_end");

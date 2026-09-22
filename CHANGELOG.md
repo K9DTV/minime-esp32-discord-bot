@@ -4,7 +4,7 @@ Older sections are append-only history (as written when that release shipped). C
 
 ## 0.5.2
 
-- HTTPS REST: CA cert bundle again (no `setInsecure`); Discord bot token and API keys verified TLS. `setCACertBundle(ptr, size)` for Arduino-ESP32 3.3.x CI.
+- HTTPS REST: CA cert bundle again (no `setInsecure`); Discord bot token and API keys verified TLS. Arduino-ESP32 3.3+: `useBuiltinCACertBundle()` (CI); older: `setCACertBundle(ptr, size)`.
 - OLED uptime row: `Up:xxd xxh xxm T:xxxF/xxxC` (**no** seconds on OLED; web SysInfo still shows `d h m s`). OLED refresh **4 s**; LAN web `/api/status` poll **2 s**.
 - Shared `formatLocalDateStr` / `formatUptimeStr`; command tokenizer with `cmdConsumesRest`.
 - DeepSeek JSON buffer **24576**; removed scrape fallback. Science news filter/doc sized for SNAPI v4 `results`.
