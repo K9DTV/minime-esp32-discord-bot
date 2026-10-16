@@ -1,6 +1,13 @@
 # MiniMe — a Discord bot on ESP32-S3
 
 [![Compile](https://github.com/K9DTV/minime-esp32-discord-bot/actions/workflows/compile.yml/badge.svg)](https://github.com/K9DTV/minime-esp32-discord-bot/actions/workflows/compile.yml)
+[![Release](https://img.shields.io/github/v/release/K9DTV/minime-esp32-discord-bot?label=release)](https://github.com/K9DTV/minime-esp32-discord-bot/releases/latest)
+[![Status](https://img.shields.io/badge/status-final%20v0.5.3-lightgrey)](https://github.com/K9DTV/minime-esp32-discord-bot/releases/tag/v0.5.3)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-ESP32--S3-red)](https://k9dtv.com/project-minime.html)
+[![Discord](https://img.shields.io/badge/Discord-Gateway%20bot-5865F2)](https://discord.com)
+[![Display](https://img.shields.io/badge/display-SSD1327%20128x128-orange)](https://k9dtv.com/project-minime.html)
+[![Website](https://img.shields.io/badge/k9dtv.com-project%20page-0a7ea4)](https://k9dtv.com/project-minime.html)
 
 **Project page:** https://k9dtv.com/project-minime.html  
 **Sister project:** [MiniMe II (Guition color LCD)](https://github.com/K9DTV/minime-ii-esp32-discord-bot)
